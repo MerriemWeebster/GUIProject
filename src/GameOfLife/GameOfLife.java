@@ -591,12 +591,13 @@ class LifeCell
 		
 		if(alive)
 		{
-			if(neighbours < 2 || neighbours > 3) futureAlive = false;
-			else futureAlive = true;
+			if(neighbours == 2 || neighbours == 3) futureAlive = true;
+			else futureAlive = false;
 		}
 		else
 		{
 			if(neighbours == 3) futureAlive = true;
+			else futureAlive = false;
 		}
 	}
 }
