@@ -7,7 +7,6 @@ import java.awt.EventQueue;
 import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.GridLayout;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -48,6 +47,7 @@ public class GameOfLife
 	}
 }
 
+@SuppressWarnings("serial")
 class GamePanel extends JPanel implements ActionListener
 {
 	public static final int GRID_SIZE = 525, GRID_HEIGHT = 21, GRID_WIDTH = GRID_SIZE / GRID_HEIGHT;
@@ -68,12 +68,11 @@ class GamePanel extends JPanel implements ActionListener
 	private LifeCell cells[];
 	private Point mouseDragPoint, gridOffset = new Point(0, 0);
 
-	@SuppressWarnings("serial")
 	GamePanel()
 	{
 		cells = new LifeCell[GRID_SIZE];
 		
-		for(int i = 0; i < GRID_SIZE; i++) cells[i] = new LifeCell(i, cells, this);			
+		for(int i = 0; i < GRID_SIZE; i++) cells[i] = new LifeCell(i, cells);			
 		
 		
 		panelTimer = new Timer(10, this);
@@ -142,11 +141,7 @@ class GamePanel extends JPanel implements ActionListener
 				startButton.setText("Start");
 				currentGeneration = 0;
 				
-				for(LifeCell cell : cells) 
-				{
-					cell.setAlive(false);
-					cell.setGeneration(0);
-				}
+				for(LifeCell cell : cells) cell.setAlive(false);
 				
 				int startingGrid = GRID_SIZE / 2;
 				
@@ -479,19 +474,16 @@ class GamePanel extends JPanel implements ActionListener
 
 class LifeCell
 {
-	private int xPos, yPos, generation;
+	private int xPos, yPos;
 	private boolean alive = false, futureAlive = false;
 	private LifeCell cells[];
-	private GamePanel gamePanel;
 	
 	
-	LifeCell(int currentIndex, LifeCell cells[], GamePanel gamePanel)
+	LifeCell(int currentIndex, LifeCell cells[])
 	{
 		this.xPos = currentIndex % GamePanel.GRID_WIDTH;
 		this.yPos = currentIndex / GamePanel.GRID_WIDTH;
 		this.cells = cells;
-		this.gamePanel = gamePanel;
-		this.generation = 0;
 	}
 	
 	public int getX() { return xPos; }
@@ -507,7 +499,6 @@ class LifeCell
 	
 	public void setAlive(boolean alive) { this.alive = this.futureAlive = alive; }
 	public void updateAliveState() { this.alive = this.futureAlive; }
-	public void setGeneration(int generation) { this.generation = generation; } 
 
 	public void updateCell()
 	{
@@ -534,8 +525,6 @@ class LifeCell
 		}
 		
 		if(neighbours < 2 || neighbours > 3) futureAlive = false;
-		else futureAlive = true;
-		
-		generation++;
+		else futureAlive = true;		
 	}
 }
