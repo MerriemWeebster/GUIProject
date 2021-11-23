@@ -55,7 +55,7 @@ class GamePanel extends JPanel implements ActionListener
 	private int currentGeneration = 0, currentSpeed = 250, gridHeight, gridSize, blockSize;
 	private int currentSize = 1;
 	private String patterns[] = {"Clear", "Block", "Tub", "Boat", "Snake", "Ship", "Aircraft Carrier", "Beehive", "Barge", 
-			"Python", "Long Boat", "Eater, Fishhook", "Loaf", "Cloverleaf"},
+			"Python", "Long Boat", "Eater, Fishhook", "Loaf", "Cloverleaf", "Glider"},
 			speeds[] = {"Slow", "Normal", "Fast"}, sizes[] = {"Small", "Medium", "Big"};
 	private BorderLayout borderLayout;
 	private FlowLayout flowLayout;
@@ -285,6 +285,13 @@ class GamePanel extends JPanel implements ActionListener
 						cells[startingGrid - gridSize * 4 + 3].setAlive(true);
 						cells[startingGrid - gridSize * 5 - 1].setAlive(true);
 						cells[startingGrid - gridSize * 5 + 1].setAlive(true);
+						break;
+					case "Glider":
+						cells[startingGrid - gridSize].setAlive(true);
+						cells[startingGrid + 1].setAlive(true);
+						cells[startingGrid + gridSize].setAlive(true);
+						cells[startingGrid + gridSize + 1].setAlive(true);
+						cells[startingGrid + gridSize - 1].setAlive(true);
 						break;
 				}
 			}
