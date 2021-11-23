@@ -55,7 +55,7 @@ class GamePanel extends JPanel implements ActionListener
 	private int currentGeneration = 0, currentSpeed = 250, gridHeight, gridSize, blockSize;
 	private int currentSize = 1;
 	private String patterns[] = {"Clear", "Block", "Tub", "Boat", "Snake", "Ship", "Aircraft Carrier", "Beehive", "Barge", 
-			"Python", "Long Boat", "Eater, Fishhook", "Loaf"},
+			"Python", "Long Boat", "Eater, Fishhook", "Loaf", "Cloverleaf"},
 			speeds[] = {"Slow", "Normal", "Fast"}, sizes[] = {"Small", "Medium", "Big"};
 	private BorderLayout borderLayout;
 	private FlowLayout flowLayout;
@@ -242,6 +242,49 @@ class GamePanel extends JPanel implements ActionListener
 						cells[startingGrid - gridSize - 1].setAlive(true);
 						cells[startingGrid - gridSize + 1].setAlive(true);
 						cells[startingGrid - gridSize * 2].setAlive(true);
+						break;
+					case "Cloverleaf":
+						cells[startingGrid + gridSize].setAlive(true);
+						cells[startingGrid + gridSize + 2].setAlive(true);
+						cells[startingGrid + gridSize + 3].setAlive(true);
+						cells[startingGrid + gridSize - 2].setAlive(true);
+						cells[startingGrid + gridSize - 3].setAlive(true);
+						cells[startingGrid + gridSize * 2 + 2].setAlive(true);
+						cells[startingGrid + gridSize * 2 + 4].setAlive(true);
+						cells[startingGrid + gridSize * 2 - 2].setAlive(true);
+						cells[startingGrid + gridSize * 2 - 4].setAlive(true);
+						cells[startingGrid + gridSize * 3].setAlive(true);
+						cells[startingGrid + gridSize * 3 + 4].setAlive(true);
+						cells[startingGrid + gridSize * 3 - 4].setAlive(true);
+						cells[startingGrid + gridSize * 4 - 1].setAlive(true);
+						cells[startingGrid + gridSize * 4 - 2].setAlive(true);
+						cells[startingGrid + gridSize * 4 - 3].setAlive(true);
+						cells[startingGrid + gridSize * 4 + 1].setAlive(true);
+						cells[startingGrid + gridSize * 4 + 2].setAlive(true);
+						cells[startingGrid + gridSize * 4 + 3].setAlive(true);
+						cells[startingGrid + gridSize * 5 - 1].setAlive(true);
+						cells[startingGrid + gridSize * 5 + 1].setAlive(true);
+						
+						cells[startingGrid - gridSize].setAlive(true);
+						cells[startingGrid - gridSize + 2].setAlive(true);
+						cells[startingGrid - gridSize + 3].setAlive(true);
+						cells[startingGrid - gridSize - 2].setAlive(true);
+						cells[startingGrid - gridSize - 3].setAlive(true);
+						cells[startingGrid - gridSize * 2 + 2].setAlive(true);
+						cells[startingGrid - gridSize * 2 + 4].setAlive(true);
+						cells[startingGrid - gridSize * 2 - 2].setAlive(true);
+						cells[startingGrid - gridSize * 2 - 4].setAlive(true);
+						cells[startingGrid - gridSize * 3].setAlive(true);
+						cells[startingGrid - gridSize * 3 + 4].setAlive(true);
+						cells[startingGrid - gridSize * 3 - 4].setAlive(true);
+						cells[startingGrid - gridSize * 4 - 1].setAlive(true);
+						cells[startingGrid - gridSize * 4 - 2].setAlive(true);
+						cells[startingGrid - gridSize * 4 - 3].setAlive(true);
+						cells[startingGrid - gridSize * 4 + 1].setAlive(true);
+						cells[startingGrid - gridSize * 4 + 2].setAlive(true);
+						cells[startingGrid - gridSize * 4 + 3].setAlive(true);
+						cells[startingGrid - gridSize * 5 - 1].setAlive(true);
+						cells[startingGrid - gridSize * 5 + 1].setAlive(true);
 						break;
 				}
 			}
@@ -524,6 +567,26 @@ class LifeCell
 		if(yPos > 0)
 		{
 			if(cells[getIndex(xPos, yPos - 1)].isAlive()) neighbours++;
+		}
+		
+		if(yPos > 0 && xPos > 0)
+		{
+			if(cells[getIndex(xPos - 1, yPos - 1)].isAlive()) neighbours++;
+		}
+		
+		if(yPos < GamePanel.GRID_HEIGHT - 1 && xPos < GamePanel.GRID_WIDTH - 1)
+		{
+			if(cells[getIndex(xPos + 1, yPos + 1)].isAlive()) neighbours++;
+		}
+		
+		if(yPos > 0 && xPos < GamePanel.GRID_WIDTH - 1)
+		{
+			if(cells[getIndex(xPos + 1, yPos - 1)].isAlive()) neighbours++;
+		}
+		
+		if(yPos < GamePanel.GRID_HEIGHT - 1 && xPos > 0)
+		{
+			if(cells[getIndex(xPos - 1, yPos + 1)].isAlive()) neighbours++;
 		}
 		
 		if(neighbours < 2 || neighbours > 3) futureAlive = false;
