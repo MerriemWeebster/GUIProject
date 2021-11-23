@@ -589,7 +589,14 @@ class LifeCell
 			if(cells[getIndex(xPos - 1, yPos + 1)].isAlive()) neighbours++;
 		}
 		
-		if(neighbours < 2 || neighbours > 3) futureAlive = false;
-		else futureAlive = true;		
+		if(alive)
+		{
+			if(neighbours < 2 || neighbours > 3) futureAlive = false;
+			else futureAlive = true;
+		}
+		else
+		{
+			if(neighbours == 3) futureAlive = true;
+		}
 	}
 }
