@@ -50,7 +50,7 @@ public class GameOfLife
 @SuppressWarnings("serial")
 class GamePanel extends JPanel implements ActionListener
 {
-	public static final int GRID_SIZE = 5250, GRID_HEIGHT = 50, GRID_WIDTH = GRID_SIZE / GRID_HEIGHT;
+	public static final int GRID_SIZE = 5250, GRID_HEIGHT = 55, GRID_WIDTH = GRID_SIZE / GRID_HEIGHT;
 		
 	private int currentGeneration = 0, currentSpeed = 250, gridHeight, gridSize, blockSize;
 	private int currentSize = 1;
