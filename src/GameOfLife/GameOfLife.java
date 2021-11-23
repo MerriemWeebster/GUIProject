@@ -33,7 +33,7 @@ public class GameOfLife
 			public void run()
 			{
 				JFrame frame = new JFrame("Game of Life");
-				frame.setSize(1000, 720);
+				frame.setSize(1280, 720);
 				frame.setResizable(true);
 				frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 				frame.setVisible(true);
@@ -50,7 +50,7 @@ public class GameOfLife
 @SuppressWarnings("serial")
 class GamePanel extends JPanel implements ActionListener
 {
-	public static final int GRID_SIZE = 5250, GRID_HEIGHT = 55, GRID_WIDTH = GRID_SIZE / GRID_HEIGHT;
+	public static final int GRID_SIZE = 5250, GRID_HEIGHT = 50, GRID_WIDTH = GRID_SIZE / GRID_HEIGHT;
 		
 	private int currentGeneration = 0, currentSpeed = 250, gridHeight, gridSize, blockSize;
 	private int currentSize = 1;
