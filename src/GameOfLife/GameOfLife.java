@@ -351,8 +351,8 @@ class GamePanel extends JPanel implements ActionListener
 							int index = i  + j * GRID_WIDTH;						
 							int posX = i * blockSize + offsetX, posY = j * blockSize + offsetY;
 							
-							if(e.getPoint().getX() >= posX && e.getPoint().getX() <= posX + blockSize + 10
-									&& e.getPoint().getY() >= posY && e.getPoint().getY() <= posY + blockSize + 10)
+							if(e.getPoint().getX() >= posX && e.getPoint().getX() <= posX + blockSize - 3
+									&& e.getPoint().getY() >= posY && e.getPoint().getY() <= posY + blockSize - 3)
 							{
 								selectedIndex = index;
 								break;
@@ -372,7 +372,6 @@ class GamePanel extends JPanel implements ActionListener
 			@Override
 			public void mousePressed(MouseEvent e)
 			{
-				setCursor(new Cursor(Cursor.HAND_CURSOR));
 				mouseDragPoint = e.getPoint();
 			}
 
@@ -402,7 +401,9 @@ class GamePanel extends JPanel implements ActionListener
 
 			@Override
 			public void mouseDragged(MouseEvent e)
-			{					
+			{			
+				setCursor(new Cursor(Cursor.HAND_CURSOR));
+
 				Point currentPoint = e.getPoint(),
 				currentOffset = new Point(currentPoint.x - mouseDragPoint.x, currentPoint.y - mouseDragPoint.y);
 				
