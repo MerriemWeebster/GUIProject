@@ -2,15 +2,21 @@ package GameOfLife;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.EventQueue;
 import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridLayout;
+import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -45,8 +51,8 @@ public class GameOfLife
 class GamePanel extends JPanel implements ActionListener
 {
 	public static final int GRID_SIZE = 525, GRID_HEIGHT = 21, GRID_WIDTH = GRID_SIZE / GRID_HEIGHT;
-	
-	private int currentGeneration = 0, currentSpeed = 2000;
+		
+	private int currentGeneration = 0, currentSpeed = 250, gridHeight, gridSize, blockSize;
 	private int currentSize = 1;
 	private String patterns[] = {"Clear", "Block", "Tub", "Boat", "Snake", "Ship", "Aircraft Carrier", "Beehive", "Barge", 
 			"Python", "Long Boat", "Eater, Fishhook", "Loaf"},
@@ -58,17 +64,17 @@ class GamePanel extends JPanel implements ActionListener
 	private JButton nextButton, startButton;
 	private JLabel generationLabel;
 	private JComboBox<String> patternList, speedList, sizeList;
+	private JCheckBox editCheck;
 	private LifeCell cells[];
+	private Point mouseDragPoint, gridOffset = new Point(0, 0);
 
 	@SuppressWarnings("serial")
 	GamePanel()
 	{
 		cells = new LifeCell[GRID_SIZE];
 		
-		for(int i = 0; i < GRID_SIZE; i++)
-		{
-			cells[i] = new LifeCell(i, cells, this);
-		}
+		for(int i = 0; i < GRID_SIZE; i++) cells[i] = new LifeCell(i, cells, this);			
+		
 		
 		panelTimer = new Timer(10, this);
 		panelTimer.start();
@@ -78,6 +84,17 @@ class GamePanel extends JPanel implements ActionListener
 		nextButton = new JButton("Next");
 		startButton = new JButton("Start");
 		generationLabel = new JLabel("Generation: 0");
+		
+		generationTimer = new Timer(currentSpeed, new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				currentGeneration++;
+				updateGame();
+			}
+			
+		});
 		
 		nextButton.addActionListener(new ActionListener() {
 
@@ -95,18 +112,8 @@ class GamePanel extends JPanel implements ActionListener
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
-				if(startButton.getText().equals("Start"))
+				if(!generationTimer.isRunning())
 				{
-					generationTimer = new Timer(currentSpeed, new ActionListener() {
-
-						@Override
-						public void actionPerformed(ActionEvent e)
-						{
-							currentGeneration++;
-							updateGame();
-						}
-						
-					});
 					generationTimer.start();
 					nextButton.setEnabled(false);
 					startButton.setText("Stop");
@@ -130,8 +137,117 @@ class GamePanel extends JPanel implements ActionListener
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
-				// TODO Auto-generated method stub
+				generationTimer.stop();
+				nextButton.setEnabled(true);
+				startButton.setText("Start");
+				currentGeneration = 0;
 				
+				for(LifeCell cell : cells) 
+				{
+					cell.setAlive(false);
+					cell.setGeneration(0);
+				}
+				
+				int startingGrid = GRID_SIZE / 2;
+				
+				switch((String) patternList.getSelectedItem())
+				{
+					case "Block":
+						cells[startingGrid].setAlive(true);
+						cells[startingGrid + 1].setAlive(true);
+						cells[startingGrid + gridSize].setAlive(true);
+						cells[startingGrid + gridSize + 1].setAlive(true);
+						break;
+					case "Tub":
+						cells[startingGrid + 1].setAlive(true);
+						cells[startingGrid - 1].setAlive(true);
+						cells[startingGrid - gridSize].setAlive(true);
+						cells[startingGrid + gridSize].setAlive(true);
+						break;
+					case "Boat":
+						cells[startingGrid + 1].setAlive(true);
+						cells[startingGrid - 1].setAlive(true);
+						cells[startingGrid - gridSize].setAlive(true);
+						cells[startingGrid + gridSize].setAlive(true);						
+						cells[startingGrid + gridSize + 1].setAlive(true);
+						break;
+					case "Snake":
+						cells[startingGrid - 1].setAlive(true);
+						cells[startingGrid + 1].setAlive(true);
+						cells[startingGrid + 2].setAlive(true);
+						cells[startingGrid + gridSize + 2].setAlive(true);
+						cells[startingGrid + gridSize ].setAlive(true);
+						cells[startingGrid + gridSize - 1].setAlive(true);
+						break;
+					case "Ship":
+						cells[startingGrid - 1].setAlive(true);
+						cells[startingGrid + 1].setAlive(true);
+						cells[startingGrid + gridSize].setAlive(true);
+						cells[startingGrid + gridSize + 1].setAlive(true);
+						cells[startingGrid - gridSize].setAlive(true);
+						cells[startingGrid - gridSize - 1].setAlive(true);
+						break;
+					case "Aircraft Carrier":
+						cells[startingGrid - 1].setAlive(true);
+						cells[startingGrid + 2].setAlive(true);
+						cells[startingGrid + gridSize + 2].setAlive(true);
+						cells[startingGrid + gridSize + 1].setAlive(true);
+						cells[startingGrid - gridSize].setAlive(true);
+						cells[startingGrid - gridSize - 1].setAlive(true);
+						break;
+					case "Beehive":
+						cells[startingGrid - 1].setAlive(true);
+						cells[startingGrid + 2].setAlive(true);
+						cells[startingGrid + gridSize].setAlive(true);
+						cells[startingGrid + gridSize + 1].setAlive(true);
+						cells[startingGrid - gridSize].setAlive(true);
+						cells[startingGrid - gridSize + 1].setAlive(true);
+						break;
+					case "Barge":
+						cells[startingGrid].setAlive(true);
+						cells[startingGrid + 2].setAlive(true);
+						cells[startingGrid + gridSize + 1].setAlive(true);
+						cells[startingGrid - gridSize - 1].setAlive(true);
+						cells[startingGrid - gridSize + 1].setAlive(true);
+						cells[startingGrid - gridSize * 2].setAlive(true);
+						break;
+					case "Python":
+						cells[startingGrid].setAlive(true);
+						cells[startingGrid - 2].setAlive(true);
+						cells[startingGrid + 2].setAlive(true);
+						cells[startingGrid + gridSize - 1].setAlive(true);
+						cells[startingGrid + gridSize - 2].setAlive(true);
+						cells[startingGrid - gridSize + 1].setAlive(true);
+						cells[startingGrid - gridSize + 2].setAlive(true);
+						break;
+					case "Long Boat":
+						cells[startingGrid].setAlive(true);
+						cells[startingGrid + 2].setAlive(true);
+						cells[startingGrid + gridSize + 1].setAlive(true);
+						cells[startingGrid + gridSize + 2].setAlive(true);
+						cells[startingGrid - gridSize - 1].setAlive(true);
+						cells[startingGrid - gridSize + 1].setAlive(true);
+						cells[startingGrid - gridSize * 2].setAlive(true);
+						break;
+					case "Eater, Fishhook":
+						cells[startingGrid + 1].setAlive(true);
+						cells[startingGrid + gridSize + 1].setAlive(true);
+						cells[startingGrid + gridSize + 2].setAlive(true);
+						cells[startingGrid - gridSize - 1].setAlive(true);
+						cells[startingGrid - gridSize + 1].setAlive(true);
+						cells[startingGrid - gridSize * 2].setAlive(true);
+						cells[startingGrid - gridSize * 2 - 1].setAlive(true);
+						break;
+					case "Loaf":
+						cells[startingGrid - 1].setAlive(true);
+						cells[startingGrid + 2].setAlive(true);
+						cells[startingGrid + gridSize].setAlive(true);
+						cells[startingGrid + gridSize + 1].setAlive(true);
+						cells[startingGrid - gridSize - 1].setAlive(true);
+						cells[startingGrid - gridSize + 1].setAlive(true);
+						cells[startingGrid - gridSize * 2].setAlive(true);
+						break;
+				}
 			}
 			
 		});
@@ -143,8 +259,21 @@ class GamePanel extends JPanel implements ActionListener
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
-				// TODO Auto-generated method stub
+				switch(speedList.getSelectedIndex())
+				{
+					case 0: 
+						currentSpeed = 500;
+						break;
+					case 1:
+						currentSpeed = 250;
+						break;
+					case 2:
+						currentSpeed = 100;
+						break;
+				}
 				
+				generationTimer.setDelay(currentSpeed);
+				if(generationTimer.isRunning()) generationTimer.restart();
 			}
 			
 		});
@@ -157,10 +286,19 @@ class GamePanel extends JPanel implements ActionListener
 			public void actionPerformed(ActionEvent e)
 			{
 				currentSize = sizeList.getSelectedIndex();
+				if(currentSize == 0) gridOffset = new Point();
+				updateSize();
+				if(gridOffset.x >= (gridSize * blockSize) / 1.5) gridOffset.setLocation((gridSize * blockSize) / 2, gridOffset.y);
+				if(gridOffset.x <= -(gridSize * blockSize) / 1.5) gridOffset.setLocation(-(gridSize * blockSize) / 2, gridOffset.y);
+
+				if(gridOffset.y >= (gridHeight * blockSize) / 1.5) gridOffset.setLocation(gridOffset.x, (gridHeight * blockSize) / 2);
+				if(gridOffset.y <= -(gridHeight * blockSize) / 1.5) gridOffset.setLocation(gridOffset.x, -(gridHeight * blockSize) / 2);
 				repaint();
 			}
 			
 		});
+		
+		editCheck = new JCheckBox("Edit Mode");
 		
 		this.setLayout(borderLayout);
 		grid = new JPanel() {
@@ -169,27 +307,17 @@ class GamePanel extends JPanel implements ActionListener
 			{
 				super.paintComponent(g);
 				
-				Graphics2D g2D = (Graphics2D) g;
-				int gridHeight = GRID_HEIGHT, gridSize = GRID_WIDTH;
-				if(currentSize == 1) { gridSize /= 1.9; gridHeight /= 1.9; }
-				if(currentSize == 2) { gridSize /= 2.75; gridHeight /= 2.75; }
-				
-				int totalCells = gridSize * gridHeight;
-				int blockSize = this.getHeight() / gridHeight;
-				if(blockSize * gridSize > this.getWidth()) blockSize = this.getWidth() / gridSize;
-				
+				Graphics2D g2D = (Graphics2D) g;	
 				//System.out.println("Width: " + gridSize + " Height: " + gridHeight + " Cells: " + totalCells);
 				
-				int offsetX = (this.getWidth() / 2) - ((gridSize * blockSize) / 2), 
-						offsetY = (this.getHeight() / 2) - ((gridHeight * blockSize) / 2);
+				int offsetX = (this.getWidth() / 2) - ((gridSize * blockSize) / 2) + gridOffset.x, 
+						offsetY = (this.getHeight() / 2) - ((gridHeight * blockSize) / 2) + gridOffset.y;
 
 				for(int i = 0; i < gridSize; i++)
 				{
 					for(int j = 0; j < gridHeight; j++)
 					{
-						int heightOffset = (GRID_HEIGHT - gridHeight) / 2, 
-								widthOffset = (GRID_WIDTH - gridSize) / 2;
-						int index = ((i + widthOffset) + (j + heightOffset) * GRID_WIDTH);						
+						int index = i  + j * GRID_WIDTH;						
 						
 						g2D.setColor(Color.DARK_GRAY);
 
@@ -207,9 +335,103 @@ class GamePanel extends JPanel implements ActionListener
 				}
 			}
 		};
+		
+		grid.addMouseListener(new MouseListener() {
+
+			@Override
+			public void mouseClicked(MouseEvent e)
+			{
+				if(editCheck.isSelected() && !generationTimer.isRunning())
+				{
+					int offsetX = (grid.getWidth() / 2) - ((gridSize * blockSize) / 2) + gridOffset.x, 
+							offsetY = (grid.getHeight() / 2) - ((gridHeight * blockSize) / 2) + gridOffset.y;
+					
+					int selectedIndex = -1;
+					
+					for(int i = 0; i < gridSize; i++)
+					{
+						for(int j = 0; j < gridHeight; j++)
+						{
+							int index = i  + j * GRID_WIDTH;						
+							int posX = i * blockSize + offsetX, posY = j * blockSize + offsetY;
+							
+							if(e.getPoint().getX() >= posX && e.getPoint().getX() <= posX + blockSize + 10
+									&& e.getPoint().getY() >= posY && e.getPoint().getY() <= posY + blockSize + 10)
+							{
+								selectedIndex = index;
+								break;
+							}
+						}
+						
+						if(selectedIndex > -1) break;
+					}
+					
+					if(selectedIndex > -1)
+					{
+						cells[selectedIndex].setAlive(!cells[selectedIndex].isAlive());
+					}
+				}
+			}
+
+			@Override
+			public void mousePressed(MouseEvent e)
+			{
+				setCursor(new Cursor(Cursor.HAND_CURSOR));
+				mouseDragPoint = e.getPoint();
+			}
+
+			@Override
+			public void mouseReleased(MouseEvent e)
+			{
+				setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+			}
+
+			@Override
+			public void mouseEntered(MouseEvent e)
+			{
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void mouseExited(MouseEvent e)
+			{
+				// TODO Auto-generated method stub
+				
+			}
+			
+		});
+		
+		grid.addMouseMotionListener(new MouseMotionListener() {
+
+			@Override
+			public void mouseDragged(MouseEvent e)
+			{					
+				Point currentPoint = e.getPoint(),
+				currentOffset = new Point(currentPoint.x - mouseDragPoint.x, currentPoint.y - mouseDragPoint.y);
+				
+				if(gridOffset.x >= (gridSize * blockSize) / 2 && currentOffset.x > 0) currentOffset.setLocation(0, currentOffset.y);
+				if(gridOffset.x <= -(gridSize * blockSize) / 2 && currentOffset.x < 0) currentOffset.setLocation(0, currentOffset.y);
+
+				if(gridOffset.y >= (gridHeight * blockSize) / 2 && currentOffset.y > 0) currentOffset.setLocation(currentOffset.x, 0);
+				if(gridOffset.y <= -(gridHeight * blockSize) / 2 && currentOffset.y < 0) currentOffset.setLocation(currentOffset.x, 0);
+				
+				gridOffset = new Point(gridOffset.x + currentOffset.x, gridOffset.y + currentOffset.y);
+				mouseDragPoint = e.getPoint();
+			}
+
+			@Override
+			public void mouseMoved(MouseEvent e)
+			{
+				// TODO Auto-generated method stub
+				
+			}
+			
+		});
 						
 		controls = new JPanel();
 		controls.setLayout(flowLayout);
+		controls.add(editCheck);
 		controls.add(patternList);
 		controls.add(nextButton);
 		controls.add(startButton);
@@ -234,9 +456,22 @@ class GamePanel extends JPanel implements ActionListener
 		repaint();
 	}
 	
+	public void updateSize()
+	{
+		gridHeight = GRID_HEIGHT;
+		gridSize = GRID_WIDTH;
+		blockSize = grid.getHeight() / gridHeight;
+		
+		if(blockSize * gridSize > grid.getWidth()) blockSize = grid.getWidth() / gridSize;
+
+		if(currentSize == 1) { blockSize *= 2; }
+		if(currentSize == 2) { blockSize *= 4;}
+	}
+	
 	@Override
 	public void actionPerformed(ActionEvent e)
 	{
+		updateSize();
 		generationLabel.setText("Generation: " + currentGeneration);
 		repaint();
 	}
@@ -272,6 +507,7 @@ class LifeCell
 	
 	public void setAlive(boolean alive) { this.alive = this.futureAlive = alive; }
 	public void updateAliveState() { this.alive = this.futureAlive; }
+	public void setGeneration(int generation) { this.generation = generation; } 
 
 	public void updateCell()
 	{
