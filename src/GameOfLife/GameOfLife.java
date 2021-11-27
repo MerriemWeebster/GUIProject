@@ -153,7 +153,7 @@ class GamePanel extends JPanel implements ActionListener
 		
 		try
 		{
-			if(!prefs.nodeExists(this.getClass().getName() + " - GUI Game Project"))
+			if(!Preferences.userRoot().nodeExists(this.getClass().getName() + " - GUI Game Project"))
 			{
 				prefs.putInt("speed", 1);
 				prefs.putInt("pattern", 0);
