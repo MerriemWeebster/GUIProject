@@ -67,6 +67,7 @@ public class GameOfLife
 				GamePanel panel = new GamePanel();
 				frame.add(panel);
 				frame.addWindowListener(new WindowAdapter() {
+					@Override
 					public void windowClosing(WindowEvent we)
 					{
 						panel.saveState();
@@ -165,15 +166,6 @@ class GamePanel extends JPanel implements ActionListener
 		{
 			// TODO Auto-generated catch block
 			e2.printStackTrace();
-		}	
-		
-		if(prefs.getBoolean("restore", false))
-		{
-			boolean[] gridPref = getGridPref();
-			for(int i = 0; i < GRID_SIZE; i++)
-			{
-				cells[i].setAlive(gridPref[i]);
-			}
 		}	
 		
 		panelTimer = new Timer(10, this);
@@ -724,9 +716,18 @@ class GamePanel extends JPanel implements ActionListener
 		this.add(grid, BorderLayout.CENTER);
 		this.add(controls, BorderLayout.PAGE_END);
 		
-		sizeList.setSelectedIndex(prefs.getInt("zoom", 1));
 		patternList.setSelectedIndex(prefs.getInt("pattern", 0));
+		sizeList.setSelectedIndex(prefs.getInt("zoom", 1));
 		speedList.setSelectedIndex(prefs.getInt("speed", 1));
+		
+		if(prefs.getBoolean("restore", false))
+		{
+			boolean[] gridPref = getGridPref();
+			for(int i = 0; i < GRID_SIZE; i++)
+			{
+				cells[i].setAlive(gridPref[i]);
+			}
+		}	
 	}
 	
 	public int getGeneration() { return this.currentGeneration; }
@@ -777,7 +778,6 @@ class GamePanel extends JPanel implements ActionListener
 			ObjectOutputStream objStream = new ObjectOutputStream(byteStream);
 			objStream.writeObject(cellGrid);
 			objStream.flush();
-			objStream.close();
 		} catch (IOException e)
 		{
 			// TODO Auto-generated catch block
