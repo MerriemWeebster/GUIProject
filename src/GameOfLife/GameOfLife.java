@@ -3,24 +3,48 @@ package GameOfLife;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
+import java.awt.Dimension;
 import java.awt.EventQueue;
+import java.awt.FileDialog;
 import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GridLayout;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 
+import javax.swing.Box;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.SwingUtilities;
 import javax.swing.Timer;
+import javax.swing.border.EmptyBorder;
+
+import java.util.prefs.BackingStoreException;
+import java.util.prefs.Preferences;
 
 public class GameOfLife
 {
@@ -35,25 +59,32 @@ public class GameOfLife
 				JFrame frame = new JFrame("Game of Life");
 				frame.setSize(1280, 720);
 				frame.setResizable(true);
+				frame.setMinimumSize(new Dimension(750, 400));
 				frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 				frame.setVisible(true);
 				frame.getContentPane().setBackground(Color.GRAY);
 				
 				GamePanel panel = new GamePanel();
 				frame.add(panel);
+				frame.addWindowListener(new WindowAdapter() {
+					public void windowClosing(WindowEvent we)
+					{
+						panel.saveState();
+					}
+				});
 			}
 			
 		});
 	}
 }
 
-@SuppressWarnings("serial")
 class GamePanel extends JPanel implements ActionListener
 {
+	private static final long serialVersionUID = 1L;
+
 	public static final int GRID_SIZE = 5250, GRID_HEIGHT = 50, GRID_WIDTH = GRID_SIZE / GRID_HEIGHT;
 		
 	private int currentGeneration = 0, currentSpeed = 250, gridHeight, gridSize, blockSize;
-	private int currentSize = 1;
 	private String patterns[] = {"Clear", "Block", "Tub", "Boat", "Snake", "Ship", "Aircraft Carrier", "Beehive", "Barge", 
 			"Python", "Long Boat", "Eater, Fishhook", "Loaf", "Cloverleaf", "Glider"},
 			speeds[] = {"Slow", "Normal", "Fast"}, sizes[] = {"Small", "Medium", "Big"};
@@ -67,13 +98,83 @@ class GamePanel extends JPanel implements ActionListener
 	private JCheckBox editCheck;
 	private LifeCell cells[];
 	private Point mouseDragPoint, gridOffset = new Point(0, 0);
+	private Preferences prefs;
+	
+	private JDialog prefsDialog;
+	private JCheckBox restorePrefCheck;
+	private JComboBox<String> patternPrefList, speedPrefList, sizePrefList;
 
 	GamePanel()
-	{
+	{	
+		prefs = Preferences.userRoot().node(this.getClass().getName() + " - GUI Game Project");
+
+		prefsDialog = new JDialog(getTopFrame(), "Preferences", true);
+		prefsDialog.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+		JPanel prefsPanel = new JPanel();
+		prefsPanel.setLayout(new GridLayout(5, 2));
+		
+		restorePrefCheck = new JCheckBox("Restore Grid on Start");
+		patternPrefList = new JComboBox<String>(patterns);
+		speedPrefList = new JComboBox<String>(speeds);
+		sizePrefList = new JComboBox<String>(sizes);
+		
+		prefsPanel.add(new JLabel("Default Pattern:"));
+		prefsPanel.add(patternPrefList);
+		prefsPanel.add(new JLabel("Default Speed:"));
+		prefsPanel.add(speedPrefList);
+		prefsPanel.add(new JLabel("Default Zoom Level:"));
+		prefsPanel.add(sizePrefList);
+		prefsPanel.add(restorePrefCheck);
+		prefsPanel.add(Box.createRigidArea(new Dimension(0, 0)));
+		prefsPanel.add(Box.createRigidArea(new Dimension(0, 0)));
+		JButton saveButton = new JButton("Save");
+		saveButton.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e)
+			{
+				prefs.putInt("speed", speedPrefList.getSelectedIndex());
+				prefs.putInt("pattern", patternPrefList.getSelectedIndex());
+				prefs.putInt("zoom", sizePrefList.getSelectedIndex());
+				prefs.putBoolean("restore", restorePrefCheck.isSelected());
+				prefsDialog.setVisible(false);
+			};
+			
+		});
+		prefsPanel.add(saveButton);
+		prefsPanel.setBorder(new EmptyBorder(20, 20, 5, 20));
+		prefsDialog.add(prefsPanel);
+		prefsDialog.pack();
+		prefsDialog.setResizable(false);
+				
 		cells = new LifeCell[GRID_SIZE];
 		
-		for(int i = 0; i < GRID_SIZE; i++) cells[i] = new LifeCell(i, cells);			
+		for(int i = 0; i < GRID_SIZE; i++) cells[i] = new LifeCell(i, cells);		
 		
+		try
+		{
+			if(!prefs.nodeExists(this.getClass().getName() + " - GUI Game Project"))
+			{
+				prefs.putInt("speed", 1);
+				prefs.putInt("pattern", 0);
+				prefs.putInt("zoom", 1);
+				prefs.putBoolean("restore", false);
+				prefs.putByteArray("grid", getCellsByteArray());
+			}
+		} catch (BackingStoreException e2)
+		{
+			// TODO Auto-generated catch block
+			e2.printStackTrace();
+		}	
+		
+		if(prefs.getBoolean("restore", false))
+		{
+			boolean[] gridPref = getGridPref();
+			for(int i = 0; i < GRID_SIZE; i++)
+			{
+				cells[i].setAlive(gridPref[i]);
+			}
+		}	
 		
 		panelTimer = new Timer(10, this);
 		panelTimer.start();
@@ -130,7 +231,6 @@ class GamePanel extends JPanel implements ActionListener
 		
 		
 		patternList = new JComboBox<String>(patterns);
-		patternList.setSelectedIndex(0);
 		patternList.addActionListener(new ActionListener() {
 
 			@Override
@@ -297,9 +397,8 @@ class GamePanel extends JPanel implements ActionListener
 			}
 			
 		});
-		
+				
 		speedList = new JComboBox<String>(speeds);
-		speedList.setSelectedIndex(1);
 		speedList.addActionListener(new ActionListener() {
 
 			@Override
@@ -323,16 +422,14 @@ class GamePanel extends JPanel implements ActionListener
 			}
 			
 		});
-		
+				
 		sizeList = new JComboBox<String>(sizes);
-		sizeList.setSelectedIndex(1);
 		sizeList.addActionListener(new ActionListener() {
 
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
-				currentSize = sizeList.getSelectedIndex();
-				if(currentSize == 0) gridOffset = new Point();
+				if(sizeList.getSelectedIndex() == 0) gridOffset = new Point();
 				updateSize();
 				if(gridOffset.x >= (gridSize * blockSize) / 1.5) gridOffset.setLocation((gridSize * blockSize) / 2, gridOffset.y);
 				if(gridOffset.x <= -(gridSize * blockSize) / 1.5) gridOffset.setLocation(-(gridSize * blockSize) / 2, gridOffset.y);
@@ -343,11 +440,16 @@ class GamePanel extends JPanel implements ActionListener
 			}
 			
 		});
-		
+				
 		editCheck = new JCheckBox("Edit Mode");
 		
 		this.setLayout(borderLayout);
 		grid = new JPanel() {
+			/**
+			 * 
+			 */
+			private static final long serialVersionUID = 1L;
+
 			@Override
 			public void paintComponent(Graphics g)
 			{
@@ -375,8 +477,12 @@ class GamePanel extends JPanel implements ActionListener
 						int posX = i * blockSize + offsetX, posY = j * blockSize + offsetY;
 						
 						g2D.fillRect(posX + 2, posY + 2, blockSize - 5, blockSize - 5);
-						g2D.setColor(Color.black);
-						g2D.drawRect(posX + 2, posY + 2, blockSize - 5, blockSize - 5);
+						
+						if(blockSize >= 7)
+						{
+							g2D.setColor(Color.black);
+							g2D.drawRect(posX + 2, posY + 2, blockSize - 5, blockSize - 5);
+						}
 					}
 				}
 			}
@@ -387,7 +493,7 @@ class GamePanel extends JPanel implements ActionListener
 			@Override
 			public void mouseClicked(MouseEvent e)
 			{
-				if(editCheck.isSelected() && !generationTimer.isRunning())
+				if(editCheck.isSelected() && !generationTimer.isRunning() && e.getButton() == MouseEvent.BUTTON1)
 				{
 					int offsetX = (grid.getWidth() / 2) - ((gridSize * blockSize) / 2) + gridOffset.x, 
 							offsetY = (grid.getHeight() / 2) - ((gridHeight * blockSize) / 2) + gridOffset.y;
@@ -417,18 +523,142 @@ class GamePanel extends JPanel implements ActionListener
 						cells[selectedIndex].setAlive(!cells[selectedIndex].isAlive());
 					}
 				}
+				else if(e.getButton() == MouseEvent.BUTTON3)
+				{
+					JPopupMenu rightClickMenu = new JPopupMenu();
+					JMenuItem save = new JMenuItem("Save"), open = new JMenuItem("Open"), pref = new JMenuItem("Preferences");
+					
+					save.addActionListener(new ActionListener() {
+
+						@Override
+						public void actionPerformed(ActionEvent e)
+						{
+							GridConfiguration gridConfig = new GridConfiguration(cells, currentGeneration, currentSpeed, 
+									sizeList.getSelectedIndex(), patternList.getSelectedIndex(), editCheck.isSelected(), gridOffset);
+						    
+							FileDialog fileDialog = new FileDialog(getTopFrame(), "Save Grid Configuration", FileDialog.SAVE);
+							
+							fileDialog.setFile("*.life");
+							fileDialog.setVisible(true);
+							
+							if(fileDialog.getFile() == null) return;
+							if(!fileDialog.getFile().endsWith(".life")) fileDialog.setFile(fileDialog.getFile() + ".life");
+
+							try
+							{
+								FileOutputStream fileOutputStream = new FileOutputStream(fileDialog.getDirectory() + "/" + fileDialog.getFile());
+								ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream);
+								objectOutputStream.writeObject(gridConfig);
+							    objectOutputStream.flush();
+							    objectOutputStream.close();
+							} 
+							catch (FileNotFoundException e1)
+							{
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							}
+							catch (IOException e1)
+							{
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							}
+						}
+						
+					});
+					
+					open.addActionListener(new ActionListener() {
+
+						@Override
+						public void actionPerformed(ActionEvent e)
+						{
+							FileDialog fileDialog = new FileDialog(getTopFrame(), "Load Grid Configuration", FileDialog.LOAD);
+
+							fileDialog.setFile("*.life");
+							fileDialog.setVisible(true);
+							
+							if(fileDialog.getFile() == null) return;
+							if(!fileDialog.getFile().endsWith(".life")) 
+							{
+								JOptionPane.showMessageDialog(getTopFrame(), "Please select a file with the extension \".life\".");
+								return;
+							}
+							
+							GridConfiguration gridConfig = null;
+							try
+							{
+								FileInputStream fileInputStream = new FileInputStream(fileDialog.getDirectory() + "/" + fileDialog.getFile());
+								ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
+							    gridConfig = (GridConfiguration) objectInputStream.readObject();
+							    objectInputStream.close(); 
+							} 
+							catch (FileNotFoundException e1)
+							{
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							}
+							catch (IOException e1)
+							{
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							} 
+							catch (ClassNotFoundException e1)
+							{
+								// TODO Auto-generated catch block
+								e1.printStackTrace();
+							}
+						
+							if(gridConfig != null)
+							{
+								patternList.setSelectedIndex(gridConfig.getStartingPatter());
+								cells = gridConfig.getCells();
+								currentGeneration = gridConfig.getGeneration();
+								currentSpeed = gridConfig.getSpeed();
+								
+								int speedIndex = 0;
+								if(currentSpeed == 250) speedIndex = 1;
+								else if(currentSpeed == 100) speedIndex = 2;
+								
+								speedList.setSelectedIndex(speedIndex);								
+								sizeList.setSelectedIndex(gridConfig.getSize());
+								editCheck.setSelected(gridConfig.getEditMode());
+								gridOffset = gridConfig.getGridOffset();
+							}
+						}
+						
+					});
+					
+					pref.addActionListener(new ActionListener() {
+
+						@Override
+						public void actionPerformed(ActionEvent e)
+						{
+							restorePrefCheck.setSelected(prefs.getBoolean("restore", false));
+							patternPrefList.setSelectedIndex(prefs.getInt("pattern", 0));
+							speedPrefList.setSelectedIndex(prefs.getInt("speed", 1));
+							sizePrefList.setSelectedIndex(prefs.getInt("zoom", 1));
+							prefsDialog.setVisible(true);
+						}
+						
+					});
+					
+					rightClickMenu.add(save);
+					rightClickMenu.add(open);
+					rightClickMenu.add(pref);
+					
+					rightClickMenu.show(e.getComponent(), e.getX(), e.getY());
+				}
 			}
 
 			@Override
 			public void mousePressed(MouseEvent e)
 			{
-				mouseDragPoint = e.getPoint();
+				if(e.getButton() == MouseEvent.BUTTON1) mouseDragPoint = e.getPoint();
 			}
 
 			@Override
 			public void mouseReleased(MouseEvent e)
 			{
-				setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+				if(e.getButton() == MouseEvent.BUTTON1) setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
 			}
 
 			@Override
@@ -451,7 +681,9 @@ class GamePanel extends JPanel implements ActionListener
 
 			@Override
 			public void mouseDragged(MouseEvent e)
-			{			
+			{	
+				if(e.getButton() != MouseEvent.BUTTON1) return;
+					
 				setCursor(new Cursor(Cursor.HAND_CURSOR));
 
 				Point currentPoint = e.getPoint(),
@@ -491,6 +723,10 @@ class GamePanel extends JPanel implements ActionListener
 		
 		this.add(grid, BorderLayout.CENTER);
 		this.add(controls, BorderLayout.PAGE_END);
+		
+		sizeList.setSelectedIndex(prefs.getInt("zoom", 1));
+		patternList.setSelectedIndex(prefs.getInt("pattern", 0));
+		speedList.setSelectedIndex(prefs.getInt("speed", 1));
 	}
 	
 	public int getGeneration() { return this.currentGeneration; }
@@ -503,6 +739,11 @@ class GamePanel extends JPanel implements ActionListener
 		repaint();
 	}
 	
+	public void saveState()
+	{
+		prefs.putByteArray("grid", getCellsByteArray());
+	}
+	
 	public void updateSize()
 	{
 		gridHeight = GRID_HEIGHT;
@@ -511,8 +752,67 @@ class GamePanel extends JPanel implements ActionListener
 		
 		if(blockSize * gridSize > grid.getWidth()) blockSize = grid.getWidth() / gridSize;
 
-		if(currentSize == 1) { blockSize *= 2; }
-		if(currentSize == 2) { blockSize *= 4;}
+		if(sizeList.getSelectedIndex() == 1) { blockSize *= 2; }
+		if(sizeList.getSelectedIndex() == 2) { blockSize *= 4;}				
+	}
+	
+	public JFrame getTopFrame()
+	{
+		JFrame topFrame = (JFrame) SwingUtilities.getWindowAncestor(this);
+		return topFrame;
+	}
+	
+	public byte[] getCellsByteArray()
+	{
+		boolean[] cellGrid = new boolean[cells.length];
+		
+		for(int i = 0; i < cells.length; i++)
+		{
+			cellGrid[i] = cells[i].isAlive();
+		}
+		
+		ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+		try
+		{
+			ObjectOutputStream objStream = new ObjectOutputStream(byteStream);
+			objStream.writeObject(cellGrid);
+			objStream.flush();
+			objStream.close();
+		} catch (IOException e)
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		byte[] data = byteStream.toByteArray();
+		return data;
+	}
+	
+	public boolean[] getGridPref()
+	{
+		boolean[] gridData = new boolean[GRID_SIZE];
+		byte[] data = prefs.getByteArray("grid", null);
+		if(data != null)
+		{
+			ByteArrayInputStream byteStream = new ByteArrayInputStream(data);
+			try
+			{
+				ObjectInputStream objStream = new ObjectInputStream(byteStream);
+				gridData = (boolean[]) objStream.readObject();
+			} 
+			catch (IOException e)
+			{
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} 
+			catch (ClassNotFoundException e)
+			{
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}	
+		}
+			
+		return gridData;
 	}
 	
 	@Override
@@ -524,8 +824,10 @@ class GamePanel extends JPanel implements ActionListener
 	}
 }
 
-class LifeCell
+class LifeCell implements Serializable
 {
+	private static final long serialVersionUID = 1L;
+	
 	private int xPos, yPos;
 	private boolean alive = false, futureAlive = false;
 	private LifeCell cells[];
@@ -608,3 +910,34 @@ class LifeCell
 		}
 	}
 }
+
+class GridConfiguration implements Serializable
+{
+	private static final long serialVersionUID = 1L;
+	
+	private int currentGeneration, currentSpeed, currentSize, startingPattern;
+	private boolean editMode;
+	private Point gridOffset;
+	private LifeCell cells[];
+	
+	
+	GridConfiguration(LifeCell cells[], int currentGeneration, int currentSpeed, int currentSize, int startingPattern, 
+			boolean editMode, Point gridOffset)
+	{
+		this.cells = cells;
+		this.currentGeneration = currentGeneration;
+		this.currentSpeed = currentSpeed;
+		this.currentSize = currentSize;
+		this.startingPattern = startingPattern;
+		this.editMode = editMode;
+		this.gridOffset = gridOffset;
+	}
+	
+	public int getGeneration() { return currentGeneration; }
+	public int getSpeed() { return currentSpeed; }
+	public int getSize() { return currentSize; }
+	public int getStartingPatter() { return startingPattern; }
+	public boolean getEditMode() { return editMode; }
+	public Point getGridOffset() { return gridOffset; }
+	public LifeCell[] getCells() { return cells; }
+ }
