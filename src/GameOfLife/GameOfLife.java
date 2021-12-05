@@ -72,7 +72,7 @@ public class GameOfLife
 					{
 						panel.saveState();
 					}
-				});
+				});				
 			}
 			
 		});
@@ -86,6 +86,7 @@ class GamePanel extends JPanel implements ActionListener
 	public static final int GRID_SIZE = 5250, GRID_HEIGHT = 50, GRID_WIDTH = GRID_SIZE / GRID_HEIGHT;
 		
 	private int currentGeneration = 0, currentSpeed = 250, gridHeight, gridSize, blockSize;
+	private boolean init = false;
 	private String patterns[] = {"Clear", "Block", "Tub", "Boat", "Snake", "Ship", "Aircraft Carrier", "Beehive", "Barge", 
 			"Python", "Long Boat", "Eater, Fishhook", "Loaf", "Cloverleaf", "Glider"},
 			speeds[] = {"Slow", "Normal", "Fast"}, sizes[] = {"Small", "Medium", "Big"};
@@ -715,10 +716,13 @@ class GamePanel extends JPanel implements ActionListener
 		
 		this.add(grid, BorderLayout.CENTER);
 		this.add(controls, BorderLayout.PAGE_END);
-		
+	}
+	
+	public void initData()
+	{
 		patternList.setSelectedIndex(prefs.getInt("pattern", 0));
 		sizeList.setSelectedIndex(prefs.getInt("zoom", 1));
-		speedList.setSelectedIndex(prefs.getInt("speed", 1));
+		speedList.setSelectedIndex(prefs.getInt("speed", 1));	
 		
 		if(prefs.getBoolean("restore", false))
 		{
@@ -744,7 +748,7 @@ class GamePanel extends JPanel implements ActionListener
 	{
 		prefs.putByteArray("grid", getCellsByteArray());
 	}
-	
+		
 	public void updateSize()
 	{
 		gridHeight = GRID_HEIGHT;
@@ -754,7 +758,13 @@ class GamePanel extends JPanel implements ActionListener
 		if(blockSize * gridSize > grid.getWidth()) blockSize = grid.getWidth() / gridSize;
 
 		if(sizeList.getSelectedIndex() == 1) { blockSize *= 2; }
-		if(sizeList.getSelectedIndex() == 2) { blockSize *= 4;}				
+		if(sizeList.getSelectedIndex() == 2) { blockSize *= 4;}	
+		
+		if(!init)
+		{
+			initData();
+			init = true;
+		}
 	}
 	
 	public JFrame getTopFrame()
