@@ -486,7 +486,7 @@ class GamePanel extends JPanel implements ActionListener
 			@Override
 			public void mouseClicked(MouseEvent e)
 			{
-				if(editCheck.isSelected() && !generationTimer.isRunning() && e.getButton() == MouseEvent.BUTTON1)
+				if(editCheck.isSelected() && !generationTimer.isRunning() && (e.getButton() == MouseEvent.BUTTON1 || e.getButton() == MouseEvent.NOBUTTON))
 				{
 					int offsetX = (grid.getWidth() / 2) - ((gridSize * blockSize) / 2) + gridOffset.x, 
 							offsetY = (grid.getHeight() / 2) - ((gridHeight * blockSize) / 2) + gridOffset.y;
@@ -642,16 +642,18 @@ class GamePanel extends JPanel implements ActionListener
 				}
 			}
 
+			//NOBUTTON is used as some laptop trackpads have the button ID 0
+			
 			@Override
 			public void mousePressed(MouseEvent e)
 			{
-				if(e.getButton() == MouseEvent.BUTTON1) mouseDragPoint = e.getPoint();
+				if(e.getButton() == MouseEvent.BUTTON1 || e.getButton() == MouseEvent.NOBUTTON) mouseDragPoint = e.getPoint();
 			}
 
 			@Override
 			public void mouseReleased(MouseEvent e)
 			{
-				if(e.getButton() == MouseEvent.BUTTON1) setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+				if(e.getButton() == MouseEvent.BUTTON1 || e.getButton() == MouseEvent.NOBUTTON) setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
 			}
 
 			@Override
@@ -675,7 +677,7 @@ class GamePanel extends JPanel implements ActionListener
 			@Override
 			public void mouseDragged(MouseEvent e)
 			{	
-				if(e.getButton() != MouseEvent.BUTTON1) return;
+				if(e.getButton() != MouseEvent.BUTTON1 && e.getButton() != MouseEvent.NOBUTTON) return;
 					
 				setCursor(new Cursor(Cursor.HAND_CURSOR));
 
