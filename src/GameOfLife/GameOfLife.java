@@ -21,7 +21,6 @@ import java.awt.event.WindowEvent;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -58,90 +57,63 @@ public class GameOfLife {
                 frame.setVisible(true);
                 frame.getContentPane().setBackground(Color.GRAY);
 
-                GamePanel panel = new GamePanel();
-                frame.add(panel);
+                GridModel gridModel = new GridModel();
+                GridPanel grid = new GridPanel(gridModel);
+                GamePanelView panel = new GamePanelView();
+                GamePanelController panelController = new GamePanelController(panel, gridModel, grid);
+                
                 frame.addWindowListener(new WindowAdapter() {
                     @Override
                     public void windowClosing(WindowEvent we) {
-                        panel.saveState();
+                        panelController.saveState();
                     }
                 });
+                
+                Thread controllerThread = new Thread(panelController);
+                controllerThread.start();
+                
+                Thread panelThread = new Thread(panel);
+                panelThread.start();
+                
+                frame.add(panel);
             }
         });
     }
 }
 
-class GamePanel extends JPanel implements ActionListener {
-    private static final long serialVersionUID = 1L;
+class GamePanelController implements Runnable {
 
     public static final int GRID_SIZE = 5250, GRID_HEIGHT = 50, GRID_WIDTH = GRID_SIZE / GRID_HEIGHT;
 
+    private GamePanelView panel;
+    private GridModel gridModel;
+    private GridPanel grid;
+    
     private int currentGeneration = 0, currentSpeed = 250, gridHeight, gridSize, blockSize;
     private boolean init = false;
     private String[] patterns = {"Clear", "Block", "Tub", "Boat", "Snake", "Ship", "Aircraft Carrier", "Beehive", "Barge",
             "Python", "Long Boat", "Eater, Fishhook", "Loaf", "Cloverleaf", "Glider"},
             speeds = {"Slow", "Normal", "Fast"}, sizes = {"Small", "Medium", "Big"};
-    private BorderLayout borderLayout;
-    private FlowLayout flowLayout;
-    private JPanel grid, controls;
-    private Timer panelTimer, generationTimer;
-    private JButton nextButton, startButton;
-    private JLabel generationLabel;
-    private JComboBox<String> patternList, speedList, sizeList;
-    private JCheckBox editCheck;
-    private LifeCell[] cells;
-    private Point mouseDragPoint, gridOffset = new Point(0, 0);
     private Preferences prefs;
+    private Timer generationTimer;
 
-    private JDialog prefsDialog;
-    private JCheckBox restorePrefCheck;
-    private JComboBox<String> patternPrefList, speedPrefList, sizePrefList;
-
-    GamePanel() {
-        prefs = Preferences.userRoot().node(this.getClass().getName() + " - GUI Game Project");
-
-        prefsDialog = new JDialog(getTopFrame(), "Preferences", true);
-        prefsDialog.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
-        JPanel prefsPanel = new JPanel();
-        prefsPanel.setLayout(new GridLayout(5, 2));
-
-        restorePrefCheck = new JCheckBox("Restore Grid on Start");
-        patternPrefList = new JComboBox<String>(patterns);
-        speedPrefList = new JComboBox<String>(speeds);
-        sizePrefList = new JComboBox<String>(sizes);
-
-        prefsPanel.add(new JLabel("Default Pattern:"));
-        prefsPanel.add(patternPrefList);
-        prefsPanel.add(new JLabel("Default Speed:"));
-        prefsPanel.add(speedPrefList);
-        prefsPanel.add(new JLabel("Default Zoom Level:"));
-        prefsPanel.add(sizePrefList);
-        prefsPanel.add(restorePrefCheck);
-        prefsPanel.add(Box.createRigidArea(new Dimension(0, 0)));
-        prefsPanel.add(Box.createRigidArea(new Dimension(0, 0)));
-        JButton saveButton = new JButton("Save");
-
-        saveButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                prefs.putInt("speed", speedPrefList.getSelectedIndex());
-                prefs.putInt("pattern", patternPrefList.getSelectedIndex());
-                prefs.putInt("zoom", sizePrefList.getSelectedIndex());
-                prefs.putBoolean("restore", restorePrefCheck.isSelected());
-                prefsDialog.setVisible(false);
-            }
-        });
-        prefsPanel.add(saveButton);
-        prefsPanel.setBorder(new EmptyBorder(20, 20, 5, 20));
-        prefsDialog.add(prefsPanel);
-        prefsDialog.pack();
-        prefsDialog.setResizable(false);
-        cells = new LifeCell[GRID_SIZE];
+	GamePanelController(GamePanelView panel, GridModel gridModel, GridPanel grid)
+	{
+		this.panel = panel;
+		this.gridModel = gridModel;
+		this.grid = grid;
+		
+        prefs = Preferences.userRoot().node(this.getClass().getName() + " - GUI Game");
+        
+        
+        //TODO: proper changes to cells
+        LifeCell[] cells = new LifeCell[GRID_SIZE];
 
         for (int i = 0; i < GRID_SIZE; i++) cells[i] = new LifeCell(i, cells);
+        gridModel.setAllCells(cells);
 
         try {
-            if (!Preferences.userRoot().nodeExists(this.getClass().getName() + " - GUI Game Project")) {
+            if (!Preferences.userRoot().nodeExists(this.getClass().getName() + " - GUI Game")) {
                 prefs.putInt("speed", 1);
                 prefs.putInt("pattern", 0);
                 prefs.putInt("zoom", 1);
@@ -151,59 +123,68 @@ class GamePanel extends JPanel implements ActionListener {
         } catch (BackingStoreException e2) {
             e2.printStackTrace();
         }
+        
+        panel.setPatternList(patterns);
+        panel.setSizeList(sizes);
+        panel.setSpeedList(speeds);
+        
+        panel.initGridPanel(grid);
 
-        panelTimer = new Timer(10, this);
-        panelTimer.start();
-        borderLayout = new BorderLayout();
-        flowLayout = new FlowLayout();
-        nextButton = new JButton("Next");
-        startButton = new JButton("Start");
-        generationLabel = new JLabel("Generation: 0");
-
+        panel.addSaveButtonListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                prefs.putInt("speed", panel.getSelectedPrefSpeed());
+                prefs.putInt("pattern", panel.getSelectedPrefPattern());
+                prefs.putInt("zoom", panel.getSelectedPrefSize());
+                prefs.putBoolean("restore", panel.getRestorePrefCheck());
+                panel.setPrefsDialogVisible(false);
+            }
+        });
+        
         generationTimer = new Timer(currentSpeed, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 currentGeneration++;
                 updateGame();
-            }});
-
-        nextButton.addActionListener(new ActionListener() {
+        }});
+        
+        panel.addNextButtonListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 currentGeneration++;
                 updateGame();
             }});
 
-        startButton.addActionListener(new ActionListener() {
+        panel.addStartButtonListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (!generationTimer.isRunning()) {
                     generationTimer.start();
-                    nextButton.setEnabled(false);
-                    startButton.setText("Stop");
+                    panel.setNextButtonEnabled(false);
+                    panel.setStartButtonText("Stop");
                 } else {
                     generationTimer.stop();
-                    nextButton.setEnabled(true);
-                    startButton.setText("Start");
+                    panel.setNextButtonEnabled(true);
+                    panel.setStartButtonText("Start");
                 }
             }});
 
-        patternList = new JComboBox<String>(patterns);
         //pattern menu listener
-        patternList.addActionListener(new ActionListener() {
+        panel.addPatternListListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 generationTimer.stop();
-                nextButton.setEnabled(true);
-                startButton.setText("Start");
+                panel.setNextButtonEnabled(true);
+                panel.setStartButtonText("Start");
                 currentGeneration = 0;
-
+                LifeCell[] cells = gridModel.getAllCells();
+                
                 for (LifeCell cell : cells) cell.setAlive(false);
 
                 int midX = gridSize / 2, midY = gridHeight / 2;
                 int startingGrid = midX + midY * gridSize;
 
-                switch (patternList.getSelectedItem().toString()) {
+                switch (panel.getPatternListSelectedString()) {
                     case "Block" -> {
                         cells[startingGrid].setAlive(true);
                         cells[startingGrid + 1].setAlive(true);
@@ -352,12 +333,11 @@ class GamePanel extends JPanel implements ActionListener {
             }
         });
 
-        speedList = new JComboBox<String>(speeds);
         //speed menu thingy listener
-        speedList.addActionListener(new ActionListener() {
+        panel.addSpeedListListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                switch (speedList.getSelectedIndex()) {
+                switch (panel.getSelectedSpeed()) {
                     case 0 -> currentSpeed = 500;
                     case 1 -> currentSpeed = 250;
                     case 2 -> currentSpeed = 100;
@@ -368,12 +348,12 @@ class GamePanel extends JPanel implements ActionListener {
             }
         });
 
-        sizeList = new JComboBox<String>(sizes);
         //size menu list
-        sizeList.addActionListener(new ActionListener() {
+        panel.addSizeListListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (sizeList.getSelectedIndex() == 0) gridOffset = new Point();
+            	Point gridOffset = grid.getGridOffset();
+                if (panel.getSelectedSize() == 0) gridOffset = new Point();
                 updateSize();
                 if (gridOffset.x >= (gridSize * blockSize) / 1.5)
                     gridOffset.setLocation((gridSize * blockSize) / 2, gridOffset.y);
@@ -384,52 +364,19 @@ class GamePanel extends JPanel implements ActionListener {
                     gridOffset.setLocation(gridOffset.x, (gridHeight * blockSize) / 2);
                 if (gridOffset.y <= -(gridHeight * blockSize) / 1.5)
                     gridOffset.setLocation(gridOffset.x, -(gridHeight * blockSize) / 2);
-                repaint();
+                
+                grid.setGridOffset(gridOffset);
+                panel.repaint();
             }});
-
-        editCheck = new JCheckBox("Edit Mode");
-
-        this.setLayout(borderLayout);
-        grid = new JPanel() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2D = (Graphics2D) g;
-
-                int offsetX = (this.getWidth() / 2) - ((gridSize * blockSize) / 2) + gridOffset.x,
-                        offsetY = (this.getHeight() / 2) - ((gridHeight * blockSize) / 2) + gridOffset.y;
-
-                for (int i = 0; i < gridSize; i++) {
-                    for (int j = 0; j < gridHeight; j++) {
-                        int index = i + j * GRID_WIDTH;
-                        g2D.setColor(Color.DARK_GRAY);
-
-                        if (cells[index].isAlive()) {
-                            g2D.setColor(Color.YELLOW);
-                        }
-
-                        int posX = i * blockSize + offsetX, posY = j * blockSize + offsetY;
-                        g2D.fillRect(posX + 2, posY + 2, blockSize - 5, blockSize - 5);
-
-                        if (blockSize >= 7) {
-                            g2D.setColor(Color.black);
-                            g2D.drawRect(posX + 2, posY + 2, blockSize - 5, blockSize - 5);
-                        }
-                    }
-                }
-            }
-        };
-
+        
         //grid listener editing the cells
         grid.addMouseListener(new MouseListener() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 //some computers do not have a proper ID for the left click, so we use button1 or NOBUTTON
-                if (editCheck.isSelected() && !generationTimer.isRunning() && (e.getButton() == MouseEvent.BUTTON1 || e.getButton() == MouseEvent.NOBUTTON)) {
-                    int offsetX = (grid.getWidth() / 2) - ((gridSize * blockSize) / 2) + gridOffset.x,
-                            offsetY = (grid.getHeight() / 2) - ((gridHeight * blockSize) / 2) + gridOffset.y;
+                if (panel.isEditModeEnabled() && !generationTimer.isRunning() && (e.getButton() == MouseEvent.BUTTON1 || e.getButton() == MouseEvent.NOBUTTON)) {
+                    int offsetX = (grid.getWidth() / 2) - ((gridSize * blockSize) / 2) + grid.getGridOffset().x,
+                            offsetY = (grid.getHeight() / 2) - ((gridHeight * blockSize) / 2) + grid.getGridOffset().y;
 
                     int selectedIndex = -1;
 
@@ -449,7 +396,7 @@ class GamePanel extends JPanel implements ActionListener {
                     }
 
                     if (selectedIndex > -1) {
-                        cells[selectedIndex].setAlive(!cells[selectedIndex].isAlive());
+                        gridModel.getCell(selectedIndex).setAlive(!gridModel.getCell(selectedIndex).isAlive());
                     }
                 } else if (e.getButton() == MouseEvent.BUTTON3) {
                     JPopupMenu rightClickMenu = new JPopupMenu();
@@ -458,10 +405,10 @@ class GamePanel extends JPanel implements ActionListener {
                     save.addActionListener(new ActionListener() {
                         @Override
                         public void actionPerformed(ActionEvent e) {
-                            GridConfiguration gridConfig = new GridConfiguration(cells, currentGeneration, currentSpeed,
-                                    sizeList.getSelectedIndex(), patternList.getSelectedIndex(), editCheck.isSelected(), gridOffset);
+                            GridConfiguration gridConfig = new GridConfiguration(gridModel.getAllCells(), currentGeneration, currentSpeed,
+                                    panel.getSelectedSize(), panel.getSelectedPattern(), panel.isEditModeEnabled(), grid.getGridOffset());
 
-                            FileDialog fileDialog = new FileDialog(getTopFrame(), "Save Grid Configuration", FileDialog.SAVE);
+                            FileDialog fileDialog = new FileDialog(panel.getTopFrame(), "Save Grid Configuration", FileDialog.SAVE);
 
                             //it is text based, but we specified it with a .life type so that it only works with our program
                             fileDialog.setFile("*.life");
@@ -486,13 +433,13 @@ class GamePanel extends JPanel implements ActionListener {
                     open.addActionListener(new ActionListener() {
                         @Override
                         public void actionPerformed(ActionEvent e) {
-                            FileDialog fileDialog = new FileDialog(getTopFrame(), "Load Grid Configuration", FileDialog.LOAD);
+                            FileDialog fileDialog = new FileDialog(panel.getTopFrame(), "Load Grid Configuration", FileDialog.LOAD);
                             fileDialog.setFile("*.life");
                             fileDialog.setVisible(true);
 
                             if (fileDialog.getFile() == null) return;
                             if (!fileDialog.getFile().endsWith(".life")) {
-                                JOptionPane.showMessageDialog(getTopFrame(), "Please select a file with the extension \".life\".");
+                                JOptionPane.showMessageDialog(panel.getTopFrame(), "Please select a file with the extension \".life\".");
                                 return;
                             }
 
@@ -507,8 +454,8 @@ class GamePanel extends JPanel implements ActionListener {
                             }
 
                             if (gridConfig != null) {
-                                patternList.setSelectedIndex(gridConfig.getStartingPatter());
-                                cells = gridConfig.getCells();
+                                panel.selectPattern(gridConfig.getStartingPatter());
+                                gridModel.setAllCells(gridConfig.getCells());
                                 currentGeneration = gridConfig.getGeneration();
                                 currentSpeed = gridConfig.getSpeed();
 
@@ -516,21 +463,21 @@ class GamePanel extends JPanel implements ActionListener {
                                 if (currentSpeed == 250) speedIndex = 1;
                                 else if (currentSpeed == 100) speedIndex = 2;
 
-                                speedList.setSelectedIndex(speedIndex);
-                                sizeList.setSelectedIndex(gridConfig.getSize());
-                                editCheck.setSelected(gridConfig.getEditMode());
-                                gridOffset = gridConfig.getGridOffset();
+                                panel.selectSpeed(speedIndex);
+                                panel.selectSize(gridConfig.getSize());
+                                panel.setEditMode(gridConfig.getEditMode());
+                                grid.setGridOffset(gridConfig.getGridOffset());
                             }
                         }});
 
                     pref.addActionListener(new ActionListener() {
                         @Override
                         public void actionPerformed(ActionEvent e) {
-                            restorePrefCheck.setSelected(prefs.getBoolean("restore", false));
-                            patternPrefList.setSelectedIndex(prefs.getInt("pattern", 0));
-                            speedPrefList.setSelectedIndex(prefs.getInt("speed", 1));
-                            sizePrefList.setSelectedIndex(prefs.getInt("zoom", 1));
-                            prefsDialog.setVisible(true);
+                            panel.setRestorePrefCheck(prefs.getBoolean("restore", false));
+                            panel.selectPrefPattern(prefs.getInt("pattern", 0));
+                            panel.selectPrefSpeed(prefs.getInt("speed", 1));
+                            panel.selectPrefSize(prefs.getInt("zoom", 1));
+                            panel.setPrefsDialogVisible(true);
                         }});
 
                     rightClickMenu.add(save);
@@ -546,13 +493,13 @@ class GamePanel extends JPanel implements ActionListener {
             @Override
             public void mousePressed(MouseEvent e) {
                 if (e.getButton() == MouseEvent.BUTTON1 || e.getButton() == MouseEvent.NOBUTTON)
-                    mouseDragPoint = e.getPoint();
+                    grid.setMouseDragPoint(e.getPoint());
             }
 
             @Override
             public void mouseReleased(MouseEvent e) {
                 if (e.getButton() == MouseEvent.BUTTON1 || e.getButton() == MouseEvent.NOBUTTON)
-                    setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+                    panel.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
             }
 
             @Override
@@ -570,101 +517,81 @@ class GamePanel extends JPanel implements ActionListener {
             public void mouseDragged(MouseEvent e) {
                 if (e.getButton() != MouseEvent.BUTTON1 && e.getButton() != MouseEvent.NOBUTTON) return;
 
-                setCursor(new Cursor(Cursor.HAND_CURSOR));
+                panel.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
                 Point currentPoint = e.getPoint(),
-                        currentOffset = new Point(currentPoint.x - mouseDragPoint.x, currentPoint.y - mouseDragPoint.y);
+                        currentOffset = new Point(currentPoint.x - grid.getMouseDragPoint().x, currentPoint.y - grid.getMouseDragPoint().y);
 
-                if (gridOffset.x >= (gridSize * blockSize) / 2 && currentOffset.x > 0)
+                if (grid.getGridOffset().x >= (gridSize * blockSize) / 2 && currentOffset.x > 0)
                     currentOffset.setLocation(0, currentOffset.y);
-                if (gridOffset.x <= -(gridSize * blockSize) / 2 && currentOffset.x < 0)
+                if (grid.getGridOffset().x <= -(gridSize * blockSize) / 2 && currentOffset.x < 0)
                     currentOffset.setLocation(0, currentOffset.y);
 
-                if (gridOffset.y >= (gridHeight * blockSize) / 2 && currentOffset.y > 0)
+                if (grid.getGridOffset().y >= (gridHeight * blockSize) / 2 && currentOffset.y > 0)
                     currentOffset.setLocation(currentOffset.x, 0);
-                if (gridOffset.y <= -(gridHeight * blockSize) / 2 && currentOffset.y < 0)
+                if (grid.getGridOffset().y <= -(gridHeight * blockSize) / 2 && currentOffset.y < 0)
                     currentOffset.setLocation(currentOffset.x, 0);
 
-                gridOffset = new Point(gridOffset.x + currentOffset.x, gridOffset.y + currentOffset.y);
-                mouseDragPoint = e.getPoint();
+                grid.setGridOffset(new Point(grid.getGridOffset().x + currentOffset.x, grid.getGridOffset().y + currentOffset.y));
+                grid.setMouseDragPoint(e.getPoint());
             }
 
             @Override
             public void mouseMoved(MouseEvent e) {
             }
 
-        });
+        });        
+	}
 
-        controls = new JPanel();
-        controls.setLayout(flowLayout);
-        controls.add(editCheck);
-        controls.add(patternList);
-        controls.add(nextButton);
-        controls.add(startButton);
-        controls.add(speedList);
-        controls.add(sizeList);
-        controls.add(generationLabel);
+	  public void initData() {
+	        panel.selectPattern(prefs.getInt("pattern", 0));
+	        panel.selectSize(prefs.getInt("zoom", 1));
+	        panel.selectSpeed(prefs.getInt("speed", 1));
 
-        grid.setBackground(Color.GRAY);
-        controls.setBackground(Color.GRAY);
+	        if (prefs.getBoolean("restore", false)) {
+	            boolean[] gridPref = getGridPref();
+	            for (int i = 0; i < GRID_SIZE; i++) {
+	                gridModel.getAllCells()[i].setAlive(gridPref[i]);
+	            }
+	        }
+	    }
 
-        this.add(grid, BorderLayout.CENTER);
-        this.add(controls, BorderLayout.PAGE_END);
-    }
+	    public void updateGame() {
+	        //we use 2 for loops so that the calculation is done before any updates are made
+	        for (LifeCell cell : gridModel.getAllCells()) cell.updateCell();
+	        for (LifeCell cell : gridModel.getAllCells()) cell.updateAliveState();
+	        panel.repaint();
+	    }
 
-    public void initData() {
-        patternList.setSelectedIndex(prefs.getInt("pattern", 0));
-        sizeList.setSelectedIndex(prefs.getInt("zoom", 1));
-        speedList.setSelectedIndex(prefs.getInt("speed", 1));
+	    public void saveState() {
+	        prefs.putByteArray("grid", getCellsByteArray());
+	    }
 
-        if (prefs.getBoolean("restore", false)) {
-            boolean[] gridPref = getGridPref();
-            for (int i = 0; i < GRID_SIZE; i++) {
-                cells[i].setAlive(gridPref[i]);
-            }
-        }
-    }
+	    public void updateSize() {
+	        gridHeight = GRID_HEIGHT;
+	        gridSize = GRID_WIDTH;
+	        blockSize = grid.getHeight() / gridHeight;
 
-    public void updateGame() {
-        //we use 2 for loops so that the calculation is done before any updates are made
-        for (LifeCell cell : cells) cell.updateCell();
-        for (LifeCell cell : cells) cell.updateAliveState();
-        repaint();
-    }
+	        if (blockSize * gridSize > grid.getWidth()) blockSize = grid.getWidth() / gridSize;
 
-    public void saveState() {
-        prefs.putByteArray("grid", getCellsByteArray());
-    }
-
-    public void updateSize() {
-        gridHeight = GRID_HEIGHT;
-        gridSize = GRID_WIDTH;
-        blockSize = grid.getHeight() / gridHeight;
-
-        if (blockSize * gridSize > grid.getWidth()) blockSize = grid.getWidth() / gridSize;
-
-        if (sizeList.getSelectedIndex() == 1) {
-            blockSize *= 2;
-        }
-        if (sizeList.getSelectedIndex() == 2) {
-            blockSize *= 4;
-        }
-        if (!init) {
-            initData();
-            init = true;
-        }
-    }
-
-    public JFrame getTopFrame() {
-        return (JFrame) SwingUtilities.getWindowAncestor(this);
-    }
-
-    //for restore function
+	        if (panel.getSelectedSize() == 1) {
+	            blockSize *= 2;
+	        }
+	        if (panel.getSelectedSize() == 2) {
+	            blockSize *= 4;
+	        }
+	        if (!init) {
+	            initData();
+	            init = true;
+	        }
+	    }
+	
+	  //for restore function
     public byte[] getCellsByteArray() {
-        boolean[] cellGrid = new boolean[cells.length];
+        boolean[] cellGrid = new boolean[gridModel.getAllCells().length];
 
-        for (int i = 0; i < cells.length; i++) {
-            cellGrid[i] = cells[i].isAlive();
+        for (int i = 0; i < gridModel.getAllCells().length; i++) {
+            cellGrid[i] = gridModel.getAllCells()[i].isAlive();
         }
 
         ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
@@ -696,11 +623,151 @@ class GamePanel extends JPanel implements ActionListener {
     }
 
     @Override
-    public void actionPerformed(ActionEvent e) {
-        updateSize();
-        generationLabel.setText("Generation: " + currentGeneration);
-        repaint();
+    public void run()
+    {
+    	while(true)
+    	{
+    		updateSize();
+	        panel.setGenerationText("Generation: " + currentGeneration);
+	        grid.updateGridDetails(gridHeight, gridSize, blockSize);
+    	}
     }
+	
+}
+
+@SuppressWarnings("serial")
+class GamePanelView extends JPanel implements Runnable {
+
+	private BorderLayout borderLayout;
+    private FlowLayout flowLayout;
+    private JPanel controls, prefsPanel;
+    private JButton nextButton, startButton, saveButton;
+    private JLabel generationLabel;
+    private JComboBox<String> patternList, speedList, sizeList;
+    private JCheckBox editCheck;
+    private JDialog prefsDialog;
+    private JCheckBox restorePrefCheck;
+    private JComboBox<String> patternPrefList, speedPrefList, sizePrefList;
+
+    public void initGridPanel(GridPanel grid) {
+
+        prefsDialog = new JDialog(getTopFrame(), "Preferences", true);
+        prefsDialog.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+        prefsPanel = new JPanel();
+        prefsPanel.setLayout(new GridLayout(5, 2));
+
+        restorePrefCheck = new JCheckBox("Restore Grid on Start");
+
+        prefsPanel.add(new JLabel("Default Pattern:"));
+        prefsPanel.add(patternPrefList);
+        prefsPanel.add(new JLabel("Default Speed:"));
+        prefsPanel.add(speedPrefList);
+        prefsPanel.add(new JLabel("Default Zoom Level:"));
+        prefsPanel.add(sizePrefList);
+        prefsPanel.add(restorePrefCheck);
+        prefsPanel.add(Box.createRigidArea(new Dimension(0, 0)));
+        prefsPanel.add(Box.createRigidArea(new Dimension(0, 0)));
+        saveButton = new JButton("Save");
+
+        prefsPanel.add(saveButton);
+        prefsPanel.setBorder(new EmptyBorder(20, 20, 5, 20));
+        prefsDialog.add(prefsPanel);
+        prefsDialog.pack();
+        prefsDialog.setResizable(false);
+       
+
+        borderLayout = new BorderLayout();
+        flowLayout = new FlowLayout();
+        nextButton = new JButton("Next");
+        startButton = new JButton("Start");
+        generationLabel = new JLabel("Generation: 0");
+
+        editCheck = new JCheckBox("Edit Mode");
+
+        this.setLayout(borderLayout);
+
+        controls = new JPanel();
+        controls.setLayout(flowLayout);
+        controls.add(editCheck);
+        controls.add(patternList);
+        controls.add(nextButton);
+        controls.add(startButton);
+        controls.add(speedList);
+        controls.add(sizeList);
+        controls.add(generationLabel);
+        controls.setBackground(Color.GRAY);
+        
+        this.add(grid, BorderLayout.CENTER);
+        this.add(controls, BorderLayout.PAGE_END);
+    }
+        
+    public void setPatternList(String[] patterns) 
+    { 
+    	this.patternList = new JComboBox<String>(patterns); 
+    	this.patternPrefList = new JComboBox<String>(patterns);
+    }
+    public void setSpeedList(String[] speeds) 
+    { 
+    	this.speedList = new JComboBox<String>(speeds);
+    	this.speedPrefList = new JComboBox<String>(speeds);
+    }
+    public void setSizeList(String[] sizes) 
+    { 
+    	this.sizeList = new JComboBox<String>(sizes);
+    	this.sizePrefList = new JComboBox<String>(sizes);
+    }
+    
+    public void selectPattern(int index) { this.patternList.setSelectedIndex(index); }
+    public void selectSpeed(int index) { this.speedList.setSelectedIndex(index); }
+    public void selectSize(int index) { this.sizeList.setSelectedIndex(index); }
+    public void selectPrefPattern(int index) { this.patternPrefList.setSelectedIndex(index); }
+    public void selectPrefSpeed(int index) { this.speedPrefList.setSelectedIndex(index); }
+    public void selectPrefSize(int index) { this.sizePrefList.setSelectedIndex(index); }
+    public void setRestorePrefCheck(boolean selected) { this.restorePrefCheck.setSelected(selected); }
+    public void setGenerationText(String text) { this.generationLabel.setText(text); }    
+    public void setPrefsDialogVisible(boolean visible) { this.prefsDialog.setVisible(visible); }    
+    public void addSaveButtonListener(ActionListener listener) { this.saveButton.addActionListener(listener); }
+    public void addNextButtonListener(ActionListener listener) { this.nextButton.addActionListener(listener); }
+    public void addStartButtonListener(ActionListener listener) { this.startButton.addActionListener(listener); }
+    public void addSizeListListener(ActionListener listener) { this.sizeList.addActionListener(listener); }
+    public void addSpeedListListener(ActionListener listener) { this.speedList.addActionListener(listener); }
+    public void addPatternListListener(ActionListener listener) { this.patternList.addActionListener(listener); }  
+    public void setNextButtonEnabled(boolean enabled) { this.nextButton.setEnabled(enabled); }
+    public void setEditMode(boolean enabled) { this.editCheck.setSelected(enabled); }
+    public void setStartButtonText(String text) { this.startButton.setText(text); }    
+
+    public int getSelectedPattern() { return this.patternList.getSelectedIndex(); }
+    public int getSelectedSpeed() { return this.speedList.getSelectedIndex(); }
+    public int getSelectedSize() { return this.sizeList.getSelectedIndex(); }
+    public int getSelectedPrefPattern() { return this.patternPrefList.getSelectedIndex(); }
+    public int getSelectedPrefSpeed() { return this.speedPrefList.getSelectedIndex(); }
+    public int getSelectedPrefSize() { return this.sizePrefList.getSelectedIndex(); }
+    
+    public boolean getRestorePrefCheck() { return this.restorePrefCheck.isSelected(); }
+    public boolean isEditModeEnabled() { return this.editCheck.isSelected(); }
+    public String getPatternListSelectedString() { return this.patternList.getSelectedItem().toString(); }
+    
+
+    public JFrame getTopFrame() {
+        return (JFrame) SwingUtilities.getWindowAncestor(this);
+    }
+
+	@Override
+	public void run()
+	{
+		while(true)
+		{
+	        repaint();
+	        try
+			{
+				Thread.sleep(10);
+			} catch (InterruptedException e)
+			{
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
 }
 
 class LifeCell implements Serializable {
@@ -712,13 +779,13 @@ class LifeCell implements Serializable {
 
 
     LifeCell(int currentIndex, LifeCell[] cells) {
-        this.xPos = currentIndex % GamePanel.GRID_WIDTH;
-        this.yPos = currentIndex / GamePanel.GRID_WIDTH;
+        this.xPos = currentIndex % GamePanelController.GRID_WIDTH;
+        this.yPos = currentIndex / GamePanelController.GRID_WIDTH;
         this.cells = cells;
     }
 
     public int getIndex(int x, int y) {
-        return x + y * GamePanel.GRID_WIDTH;
+        return x + y * GamePanelController.GRID_WIDTH;
     }
 
     public boolean isAlive() {
@@ -736,7 +803,7 @@ class LifeCell implements Serializable {
     public void updateCell() {
         int neighbours = 0;
 
-        if (xPos < GamePanel.GRID_WIDTH - 1) {
+        if (xPos < GamePanelController.GRID_WIDTH - 1) {
             if (cells[getIndex(xPos + 1, yPos)].isAlive()) neighbours++;
         }
 
@@ -744,7 +811,7 @@ class LifeCell implements Serializable {
             if (cells[getIndex(xPos - 1, yPos)].isAlive()) neighbours++;
         }
 
-        if (yPos < GamePanel.GRID_HEIGHT - 1) {
+        if (yPos < GamePanelController.GRID_HEIGHT - 1) {
             if (cells[getIndex(xPos, yPos + 1)].isAlive()) neighbours++;
         }
 
@@ -756,15 +823,15 @@ class LifeCell implements Serializable {
             if (cells[getIndex(xPos - 1, yPos - 1)].isAlive()) neighbours++;
         }
 
-        if (yPos < GamePanel.GRID_HEIGHT - 1 && xPos < GamePanel.GRID_WIDTH - 1) {
+        if (yPos < GamePanelController.GRID_HEIGHT - 1 && xPos < GamePanelController.GRID_WIDTH - 1) {
             if (cells[getIndex(xPos + 1, yPos + 1)].isAlive()) neighbours++;
         }
 
-        if (yPos > 0 && xPos < GamePanel.GRID_WIDTH - 1) {
+        if (yPos > 0 && xPos < GamePanelController.GRID_WIDTH - 1) {
             if (cells[getIndex(xPos + 1, yPos - 1)].isAlive()) neighbours++;
         }
 
-        if (yPos < GamePanel.GRID_HEIGHT - 1 && xPos > 0) {
+        if (yPos < GamePanelController.GRID_HEIGHT - 1 && xPos > 0) {
             if (cells[getIndex(xPos - 1, yPos + 1)].isAlive()) neighbours++;
         }
 
@@ -823,4 +890,70 @@ class GridConfiguration implements Serializable {
     public LifeCell[] getCells() {
         return cells;
     }
+}
+
+class GridModel
+{
+	private LifeCell[] cells;
+	
+	public LifeCell getCell(int index) { return cells[index]; }
+	public LifeCell[] getAllCells() { return cells; }
+	public void setCell(int index, LifeCell cell) { cells[index] = cell; }
+	public void setAllCells(LifeCell[] cells) { this.cells = cells; }
+}
+
+@SuppressWarnings("serial")
+class GridPanel extends JPanel
+{
+	private int gridSize = 0, gridHeight = 0, blockSize = 0;
+    private Point mouseDragPoint, gridOffset = new Point(0, 0);
+    private GridModel gridModel;
+    
+    GridPanel(GridModel gridModel)
+    {
+    	this.gridModel = gridModel;
+        this.setBackground(Color.GRAY);
+    }
+
+	@Override
+    public void paintComponent(Graphics g) {
+        super.paintComponent(g);
+                
+        Graphics2D g2D = (Graphics2D) g;
+
+        int offsetX = (this.getWidth() / 2) - ((gridSize * blockSize) / 2) + gridOffset.x,
+                offsetY = (this.getHeight() / 2) - ((gridHeight * blockSize) / 2) + gridOffset.y;
+
+        for (int i = 0; i < gridSize; i++) {
+            for (int j = 0; j < gridHeight; j++) {
+                int index = i + j * GamePanelController.GRID_WIDTH;
+                g2D.setColor(Color.DARK_GRAY);
+
+                if (gridModel.getCell(index).isAlive()) {
+                    g2D.setColor(Color.YELLOW);
+                }
+
+                int posX = i * blockSize + offsetX, posY = j * blockSize + offsetY;
+                g2D.fillRect(posX + 2, posY + 2, blockSize - 5, blockSize - 5);
+
+                if (blockSize >= 7) {
+                    g2D.setColor(Color.black);
+                    g2D.drawRect(posX + 2, posY + 2, blockSize - 5, blockSize - 5);
+                }
+            }
+        }
+    }
+	
+    public void setGridOffset(Point offset) { this.gridOffset = offset; }
+    public void updateGridDetails(int gridHeight, int gridSize, int blockSize) 
+    { 
+    	this.gridHeight = gridHeight;
+    	this.gridSize = gridSize; 
+    	this.blockSize = blockSize; 
+    }
+    
+    public void setMouseDragPoint(Point mouseDragPoint) { this.mouseDragPoint = mouseDragPoint; }
+    
+    public Point getGridOffset() { return this.gridOffset; }
+    public Point getMouseDragPoint() { return this.mouseDragPoint; }
 }
