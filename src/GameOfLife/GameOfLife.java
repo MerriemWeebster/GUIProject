@@ -82,18 +82,11 @@ public class GameOfLife {
 }
 
 class GamePanelController implements Runnable {
-
-    public static final int GRID_SIZE = 5250, GRID_HEIGHT = 50, GRID_WIDTH = GRID_SIZE / GRID_HEIGHT;
-
     private GamePanelView panel;
     private GridModel gridModel;
     private GridPanel grid;
     
-    private int currentGeneration = 0, currentSpeed = 250, gridHeight, gridSize, blockSize;
     private boolean init = false;
-    private String[] patterns = {"Clear", "Block", "Tub", "Boat", "Snake", "Ship", "Aircraft Carrier", "Beehive", "Barge",
-            "Python", "Long Boat", "Eater, Fishhook", "Loaf", "Cloverleaf", "Glider"},
-            speeds = {"Slow", "Normal", "Fast"}, sizes = {"Small", "Medium", "Big"};
     private Preferences prefs;
     private Timer generationTimer;
 
@@ -107,9 +100,9 @@ class GamePanelController implements Runnable {
         
         
         //TODO: proper changes to cells
-        LifeCell[] cells = new LifeCell[GRID_SIZE];
+        LifeCell[] cells = new LifeCell[GridModel.GRID_SIZE];
 
-        for (int i = 0; i < GRID_SIZE; i++) cells[i] = new LifeCell(i, cells);
+        for (int i = 0; i < GridModel.GRID_SIZE; i++) cells[i] = new LifeCell(i, cells);
         gridModel.setAllCells(cells);
 
         try {
@@ -124,9 +117,9 @@ class GamePanelController implements Runnable {
             e2.printStackTrace();
         }
         
-        panel.setPatternList(patterns);
-        panel.setSizeList(sizes);
-        panel.setSpeedList(speeds);
+        panel.setPatternList(gridModel.getPatterns());
+        panel.setSizeList(gridModel.getSizes());
+        panel.setSpeedList(gridModel.getSpeeds());
         
         panel.initGridPanel(grid);
 
@@ -141,17 +134,17 @@ class GamePanelController implements Runnable {
             }
         });
         
-        generationTimer = new Timer(currentSpeed, new ActionListener() {
+        generationTimer = new Timer(gridModel.getCurrentSpeed(), new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                currentGeneration++;
+                gridModel.incrementGeneration();
                 updateGame();
         }});
         
         panel.addNextButtonListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                currentGeneration++;
+                gridModel.incrementGeneration();
                 updateGame();
             }});
 
@@ -176,158 +169,158 @@ class GamePanelController implements Runnable {
                 generationTimer.stop();
                 panel.setNextButtonEnabled(true);
                 panel.setStartButtonText("Start");
-                currentGeneration = 0;
+                gridModel.setCurrentGeneration(0);
                 LifeCell[] cells = gridModel.getAllCells();
                 
                 for (LifeCell cell : cells) cell.setAlive(false);
 
-                int midX = gridSize / 2, midY = gridHeight / 2;
-                int startingGrid = midX + midY * gridSize;
+                int midX = gridModel.getGridSize() / 2, midY = gridModel.getGridHeight() / 2;
+                int startingGrid = midX + midY * gridModel.getGridSize();
 
                 switch (panel.getPatternListSelectedString()) {
                     case "Block" -> {
                         cells[startingGrid].setAlive(true);
                         cells[startingGrid + 1].setAlive(true);
-                        cells[startingGrid + gridSize].setAlive(true);
-                        cells[startingGrid + gridSize + 1].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize()].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() + 1].setAlive(true);
                     }
                     case "Tub" -> {
                         cells[startingGrid + 1].setAlive(true);
                         cells[startingGrid - 1].setAlive(true);
-                        cells[startingGrid - gridSize].setAlive(true);
-                        cells[startingGrid + gridSize].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize()].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize()].setAlive(true);
                     }
                     case "Boat" -> {
                         cells[startingGrid + 1].setAlive(true);
                         cells[startingGrid - 1].setAlive(true);
-                        cells[startingGrid - gridSize].setAlive(true);
-                        cells[startingGrid + gridSize].setAlive(true);
-                        cells[startingGrid + gridSize + 1].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize()].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize()].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() + 1].setAlive(true);
                     }
                     case "Snake" -> {
                         cells[startingGrid - 1].setAlive(true);
                         cells[startingGrid + 1].setAlive(true);
                         cells[startingGrid + 2].setAlive(true);
-                        cells[startingGrid + gridSize + 2].setAlive(true);
-                        cells[startingGrid + gridSize].setAlive(true);
-                        cells[startingGrid + gridSize - 1].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() + 2].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize()].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() - 1].setAlive(true);
                     }
                     case "Ship" -> {
                         cells[startingGrid - 1].setAlive(true);
                         cells[startingGrid + 1].setAlive(true);
-                        cells[startingGrid + gridSize].setAlive(true);
-                        cells[startingGrid + gridSize + 1].setAlive(true);
-                        cells[startingGrid - gridSize].setAlive(true);
-                        cells[startingGrid - gridSize - 1].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize()].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() + 1].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize()].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() - 1].setAlive(true);
                     }
                     case "Aircraft Carrier" -> {
                         cells[startingGrid - 1].setAlive(true);
                         cells[startingGrid + 2].setAlive(true);
-                        cells[startingGrid + gridSize + 2].setAlive(true);
-                        cells[startingGrid + gridSize + 1].setAlive(true);
-                        cells[startingGrid - gridSize].setAlive(true);
-                        cells[startingGrid - gridSize - 1].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() + 2].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() + 1].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize()].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() - 1].setAlive(true);
                     }
                     case "Beehive" -> {
                         cells[startingGrid - 1].setAlive(true);
                         cells[startingGrid + 2].setAlive(true);
-                        cells[startingGrid + gridSize].setAlive(true);
-                        cells[startingGrid + gridSize + 1].setAlive(true);
-                        cells[startingGrid - gridSize].setAlive(true);
-                        cells[startingGrid - gridSize + 1].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize()].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() + 1].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize()].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() + 1].setAlive(true);
                     }
                     case "Barge" -> {
                         cells[startingGrid].setAlive(true);
                         cells[startingGrid + 2].setAlive(true);
-                        cells[startingGrid + gridSize + 1].setAlive(true);
-                        cells[startingGrid - gridSize - 1].setAlive(true);
-                        cells[startingGrid - gridSize + 1].setAlive(true);
-                        cells[startingGrid - gridSize * 2].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() + 1].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() - 1].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() + 1].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() * 2].setAlive(true);
                     }
                     case "Python" -> {
                         cells[startingGrid].setAlive(true);
                         cells[startingGrid - 2].setAlive(true);
                         cells[startingGrid + 2].setAlive(true);
-                        cells[startingGrid + gridSize - 1].setAlive(true);
-                        cells[startingGrid + gridSize - 2].setAlive(true);
-                        cells[startingGrid - gridSize + 1].setAlive(true);
-                        cells[startingGrid - gridSize + 2].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() - 1].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() - 2].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() + 1].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() + 2].setAlive(true);
                     }
                     case "Long Boat" -> {
                         cells[startingGrid].setAlive(true);
                         cells[startingGrid + 2].setAlive(true);
-                        cells[startingGrid + gridSize + 1].setAlive(true);
-                        cells[startingGrid + gridSize + 2].setAlive(true);
-                        cells[startingGrid - gridSize - 1].setAlive(true);
-                        cells[startingGrid - gridSize + 1].setAlive(true);
-                        cells[startingGrid - gridSize * 2].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() + 1].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() + 2].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() - 1].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() + 1].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() * 2].setAlive(true);
                     }
                     case "Eater, Fishhook" -> {
                         cells[startingGrid + 1].setAlive(true);
-                        cells[startingGrid + gridSize + 1].setAlive(true);
-                        cells[startingGrid + gridSize + 2].setAlive(true);
-                        cells[startingGrid - gridSize - 1].setAlive(true);
-                        cells[startingGrid - gridSize + 1].setAlive(true);
-                        cells[startingGrid - gridSize * 2].setAlive(true);
-                        cells[startingGrid - gridSize * 2 - 1].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() + 1].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() + 2].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() - 1].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() + 1].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() * 2].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() * 2 - 1].setAlive(true);
                     }
                     case "Loaf" -> {
                         cells[startingGrid - 1].setAlive(true);
                         cells[startingGrid + 2].setAlive(true);
-                        cells[startingGrid + gridSize].setAlive(true);
-                        cells[startingGrid + gridSize + 1].setAlive(true);
-                        cells[startingGrid - gridSize - 1].setAlive(true);
-                        cells[startingGrid - gridSize + 1].setAlive(true);
-                        cells[startingGrid - gridSize * 2].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize()].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() + 1].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() - 1].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() + 1].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() * 2].setAlive(true);
                     }
                     case "Cloverleaf" -> {
-                        cells[startingGrid + gridSize].setAlive(true);
-                        cells[startingGrid + gridSize + 2].setAlive(true);
-                        cells[startingGrid + gridSize + 3].setAlive(true);
-                        cells[startingGrid + gridSize - 2].setAlive(true);
-                        cells[startingGrid + gridSize - 3].setAlive(true);
-                        cells[startingGrid + gridSize * 2 + 2].setAlive(true);
-                        cells[startingGrid + gridSize * 2 + 4].setAlive(true);
-                        cells[startingGrid + gridSize * 2 - 2].setAlive(true);
-                        cells[startingGrid + gridSize * 2 - 4].setAlive(true);
-                        cells[startingGrid + gridSize * 3].setAlive(true);
-                        cells[startingGrid + gridSize * 3 + 4].setAlive(true);
-                        cells[startingGrid + gridSize * 3 - 4].setAlive(true);
-                        cells[startingGrid + gridSize * 4 - 1].setAlive(true);
-                        cells[startingGrid + gridSize * 4 - 2].setAlive(true);
-                        cells[startingGrid + gridSize * 4 - 3].setAlive(true);
-                        cells[startingGrid + gridSize * 4 + 1].setAlive(true);
-                        cells[startingGrid + gridSize * 4 + 2].setAlive(true);
-                        cells[startingGrid + gridSize * 4 + 3].setAlive(true);
-                        cells[startingGrid + gridSize * 5 - 1].setAlive(true);
-                        cells[startingGrid + gridSize * 5 + 1].setAlive(true);
-                        cells[startingGrid - gridSize].setAlive(true);
-                        cells[startingGrid - gridSize + 2].setAlive(true);
-                        cells[startingGrid - gridSize + 3].setAlive(true);
-                        cells[startingGrid - gridSize - 2].setAlive(true);
-                        cells[startingGrid - gridSize - 3].setAlive(true);
-                        cells[startingGrid - gridSize * 2 + 2].setAlive(true);
-                        cells[startingGrid - gridSize * 2 + 4].setAlive(true);
-                        cells[startingGrid - gridSize * 2 - 2].setAlive(true);
-                        cells[startingGrid - gridSize * 2 - 4].setAlive(true);
-                        cells[startingGrid - gridSize * 3].setAlive(true);
-                        cells[startingGrid - gridSize * 3 + 4].setAlive(true);
-                        cells[startingGrid - gridSize * 3 - 4].setAlive(true);
-                        cells[startingGrid - gridSize * 4 - 1].setAlive(true);
-                        cells[startingGrid - gridSize * 4 - 2].setAlive(true);
-                        cells[startingGrid - gridSize * 4 - 3].setAlive(true);
-                        cells[startingGrid - gridSize * 4 + 1].setAlive(true);
-                        cells[startingGrid - gridSize * 4 + 2].setAlive(true);
-                        cells[startingGrid - gridSize * 4 + 3].setAlive(true);
-                        cells[startingGrid - gridSize * 5 - 1].setAlive(true);
-                        cells[startingGrid - gridSize * 5 + 1].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize()].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() + 2].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() + 3].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() - 2].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() - 3].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() * 2 + 2].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() * 2 + 4].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() * 2 - 2].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() * 2 - 4].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() * 3].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() * 3 + 4].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() * 3 - 4].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() * 4 - 1].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() * 4 - 2].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() * 4 - 3].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() * 4 + 1].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() * 4 + 2].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() * 4 + 3].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() * 5 - 1].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() * 5 + 1].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize()].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() + 2].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() + 3].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() - 2].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() - 3].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() * 2 + 2].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() * 2 + 4].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() * 2 - 2].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() * 2 - 4].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() * 3].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() * 3 + 4].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() * 3 - 4].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() * 4 - 1].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() * 4 - 2].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() * 4 - 3].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() * 4 + 1].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() * 4 + 2].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() * 4 + 3].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() * 5 - 1].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize() * 5 + 1].setAlive(true);
                     }
                     case "Glider" -> {
-                        cells[startingGrid - gridSize].setAlive(true);
+                        cells[startingGrid - gridModel.getGridSize()].setAlive(true);
                         cells[startingGrid + 1].setAlive(true);
-                        cells[startingGrid + gridSize].setAlive(true);
-                        cells[startingGrid + gridSize + 1].setAlive(true);
-                        cells[startingGrid + gridSize - 1].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize()].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() + 1].setAlive(true);
+                        cells[startingGrid + gridModel.getGridSize() - 1].setAlive(true);
                     }
                 }
             }
@@ -338,12 +331,12 @@ class GamePanelController implements Runnable {
             @Override
             public void actionPerformed(ActionEvent e) {
                 switch (panel.getSelectedSpeed()) {
-                    case 0 -> currentSpeed = 500;
-                    case 1 -> currentSpeed = 250;
-                    case 2 -> currentSpeed = 100;
+                    case 0 -> gridModel.setCurrentSpeed(500);
+                    case 1 -> gridModel.setCurrentSpeed(250);
+                    case 2 -> gridModel.setCurrentSpeed(100);
                 }
 
-                generationTimer.setDelay(currentSpeed);
+                generationTimer.setDelay(gridModel.getCurrentSpeed());
                 if (generationTimer.isRunning()) generationTimer.restart();
             }
         });
@@ -355,15 +348,15 @@ class GamePanelController implements Runnable {
             	Point gridOffset = grid.getGridOffset();
                 if (panel.getSelectedSize() == 0) gridOffset = new Point();
                 updateSize();
-                if (gridOffset.x >= (gridSize * blockSize) / 1.5)
-                    gridOffset.setLocation((gridSize * blockSize) / 2, gridOffset.y);
-                if (gridOffset.x <= -(gridSize * blockSize) / 1.5)
-                    gridOffset.setLocation(-(gridSize * blockSize) / 2, gridOffset.y);
+                if (gridOffset.x >= (gridModel.getGridSize() * gridModel.getBlockSize()) / 1.5)
+                    gridOffset.setLocation((gridModel.getGridSize() * gridModel.getBlockSize()) / 2, gridOffset.y);
+                if (gridOffset.x <= -(gridModel.getGridSize() * gridModel.getBlockSize()) / 1.5)
+                    gridOffset.setLocation(-(gridModel.getGridSize() * gridModel.getBlockSize()) / 2, gridOffset.y);
 
-                if (gridOffset.y >= (gridHeight * blockSize) / 1.5)
-                    gridOffset.setLocation(gridOffset.x, (gridHeight * blockSize) / 2);
-                if (gridOffset.y <= -(gridHeight * blockSize) / 1.5)
-                    gridOffset.setLocation(gridOffset.x, -(gridHeight * blockSize) / 2);
+                if (gridOffset.y >= (gridModel.getGridHeight() * gridModel.getBlockSize()) / 1.5)
+                    gridOffset.setLocation(gridOffset.x, (gridModel.getGridHeight() * gridModel.getBlockSize()) / 2);
+                if (gridOffset.y <= -(gridModel.getGridHeight() * gridModel.getBlockSize()) / 1.5)
+                    gridOffset.setLocation(gridOffset.x, -(gridModel.getGridHeight() * gridModel.getBlockSize()) / 2);
                 
                 grid.setGridOffset(gridOffset);
                 panel.repaint();
@@ -375,18 +368,18 @@ class GamePanelController implements Runnable {
             public void mouseClicked(MouseEvent e) {
                 //some computers do not have a proper ID for the left click, so we use button1 or NOBUTTON
                 if (panel.isEditModeEnabled() && !generationTimer.isRunning() && (e.getButton() == MouseEvent.BUTTON1 || e.getButton() == MouseEvent.NOBUTTON)) {
-                    int offsetX = (grid.getWidth() / 2) - ((gridSize * blockSize) / 2) + grid.getGridOffset().x,
-                            offsetY = (grid.getHeight() / 2) - ((gridHeight * blockSize) / 2) + grid.getGridOffset().y;
+                    int offsetX = (grid.getWidth() / 2) - ((gridModel.getGridSize() * gridModel.getBlockSize()) / 2) + grid.getGridOffset().x,
+                            offsetY = (grid.getHeight() / 2) - ((gridModel.getGridHeight() * gridModel.getBlockSize()) / 2) + grid.getGridOffset().y;
 
                     int selectedIndex = -1;
 
-                    for (int i = 0; i < gridSize; i++) {
-                        for (int j = 0; j < gridHeight; j++) {
-                            int index = i + j * GRID_WIDTH;
-                            int posX = i * blockSize + offsetX, posY = j * blockSize + offsetY;
+                    for (int i = 0; i < gridModel.getGridSize(); i++) {
+                        for (int j = 0; j < gridModel.getGridHeight(); j++) {
+                            int index = i + j * GridModel.GRID_WIDTH;
+                            int posX = i * gridModel.getBlockSize() + offsetX, posY = j * gridModel.getBlockSize() + offsetY;
 
-                            if (e.getPoint().getX() >= posX && e.getPoint().getX() <= posX + blockSize - 3
-                                    && e.getPoint().getY() >= posY && e.getPoint().getY() <= posY + blockSize - 3) {
+                            if (e.getPoint().getX() >= posX && e.getPoint().getX() <= posX + gridModel.getBlockSize() - 3
+                                    && e.getPoint().getY() >= posY && e.getPoint().getY() <= posY + gridModel.getBlockSize() - 3) {
                                 selectedIndex = index;
                                 break;
                             }
@@ -405,7 +398,7 @@ class GamePanelController implements Runnable {
                     save.addActionListener(new ActionListener() {
                         @Override
                         public void actionPerformed(ActionEvent e) {
-                            GridConfiguration gridConfig = new GridConfiguration(gridModel.getAllCells(), currentGeneration, currentSpeed,
+                            GridConfiguration gridConfig = new GridConfiguration(gridModel.getAllCells(), gridModel.getCurrentGeneration(), gridModel.getCurrentSpeed(),
                                     panel.getSelectedSize(), panel.getSelectedPattern(), panel.isEditModeEnabled(), grid.getGridOffset());
 
                             FileDialog fileDialog = new FileDialog(panel.getTopFrame(), "Save Grid Configuration", FileDialog.SAVE);
@@ -456,12 +449,12 @@ class GamePanelController implements Runnable {
                             if (gridConfig != null) {
                                 panel.selectPattern(gridConfig.getStartingPatter());
                                 gridModel.setAllCells(gridConfig.getCells());
-                                currentGeneration = gridConfig.getGeneration();
-                                currentSpeed = gridConfig.getSpeed();
+                                gridModel.setCurrentGeneration(gridConfig.getGeneration());
+                                gridModel.setCurrentGeneration(gridConfig.getSpeed());
 
                                 int speedIndex = 0;
-                                if (currentSpeed == 250) speedIndex = 1;
-                                else if (currentSpeed == 100) speedIndex = 2;
+                                if (gridModel.getCurrentSpeed() == 250) speedIndex = 1;
+                                else if (gridModel.getCurrentSpeed() == 100) speedIndex = 2;
 
                                 panel.selectSpeed(speedIndex);
                                 panel.selectSize(gridConfig.getSize());
@@ -522,14 +515,14 @@ class GamePanelController implements Runnable {
                 Point currentPoint = e.getPoint(),
                         currentOffset = new Point(currentPoint.x - grid.getMouseDragPoint().x, currentPoint.y - grid.getMouseDragPoint().y);
 
-                if (grid.getGridOffset().x >= (gridSize * blockSize) / 2 && currentOffset.x > 0)
+                if (grid.getGridOffset().x >= (gridModel.getGridSize() * gridModel.getBlockSize()) / 2 && currentOffset.x > 0)
                     currentOffset.setLocation(0, currentOffset.y);
-                if (grid.getGridOffset().x <= -(gridSize * blockSize) / 2 && currentOffset.x < 0)
+                if (grid.getGridOffset().x <= -(gridModel.getGridSize() * gridModel.getBlockSize()) / 2 && currentOffset.x < 0)
                     currentOffset.setLocation(0, currentOffset.y);
 
-                if (grid.getGridOffset().y >= (gridHeight * blockSize) / 2 && currentOffset.y > 0)
+                if (grid.getGridOffset().y >= (gridModel.getGridHeight() * gridModel.getBlockSize()) / 2 && currentOffset.y > 0)
                     currentOffset.setLocation(currentOffset.x, 0);
-                if (grid.getGridOffset().y <= -(gridHeight * blockSize) / 2 && currentOffset.y < 0)
+                if (grid.getGridOffset().y <= -(gridModel.getGridHeight() * gridModel.getBlockSize()) / 2 && currentOffset.y < 0)
                     currentOffset.setLocation(currentOffset.x, 0);
 
                 grid.setGridOffset(new Point(grid.getGridOffset().x + currentOffset.x, grid.getGridOffset().y + currentOffset.y));
@@ -550,7 +543,7 @@ class GamePanelController implements Runnable {
 
 	        if (prefs.getBoolean("restore", false)) {
 	            boolean[] gridPref = getGridPref();
-	            for (int i = 0; i < GRID_SIZE; i++) {
+	            for (int i = 0; i < GridModel.GRID_SIZE; i++) {
 	                gridModel.getAllCells()[i].setAlive(gridPref[i]);
 	            }
 	        }
@@ -568,9 +561,9 @@ class GamePanelController implements Runnable {
 	    }
 
 	    public void updateSize() {
-	        gridHeight = GRID_HEIGHT;
-	        gridSize = GRID_WIDTH;
-	        blockSize = grid.getHeight() / gridHeight;
+	        int gridHeight = GridModel.GRID_HEIGHT;
+	        int gridSize = GridModel.GRID_WIDTH;
+	        int blockSize = grid.getHeight() / gridHeight;
 
 	        if (blockSize * gridSize > grid.getWidth()) blockSize = grid.getWidth() / gridSize;
 
@@ -580,6 +573,11 @@ class GamePanelController implements Runnable {
 	        if (panel.getSelectedSize() == 2) {
 	            blockSize *= 4;
 	        }
+	        
+	        gridModel.setGridHeight(gridHeight);
+	        gridModel.setGridSize(gridSize);
+	        gridModel.setBlockSize(blockSize);
+	        
 	        if (!init) {
 	            initData();
 	            init = true;
@@ -607,7 +605,7 @@ class GamePanelController implements Runnable {
     }
 
     public boolean[] getGridPref() {
-        boolean[] gridData = new boolean[GRID_SIZE];
+        boolean[] gridData = new boolean[GridModel.GRID_SIZE];
         byte[] data = prefs.getByteArray("grid", null);
         if (data != null) {
             ByteArrayInputStream byteStream = new ByteArrayInputStream(data);
@@ -628,8 +626,7 @@ class GamePanelController implements Runnable {
     	while(true)
     	{
     		updateSize();
-	        panel.setGenerationText("Generation: " + currentGeneration);
-	        grid.updateGridDetails(gridHeight, gridSize, blockSize);
+	        panel.setGenerationText("Generation: " + gridModel.getCurrentGeneration());
     	}
     }
 	
@@ -779,13 +776,13 @@ class LifeCell implements Serializable {
 
 
     LifeCell(int currentIndex, LifeCell[] cells) {
-        this.xPos = currentIndex % GamePanelController.GRID_WIDTH;
-        this.yPos = currentIndex / GamePanelController.GRID_WIDTH;
+        this.xPos = currentIndex % GridModel.GRID_WIDTH;
+        this.yPos = currentIndex / GridModel.GRID_WIDTH;
         this.cells = cells;
     }
 
     public int getIndex(int x, int y) {
-        return x + y * GamePanelController.GRID_WIDTH;
+        return x + y * GridModel.GRID_WIDTH;
     }
 
     public boolean isAlive() {
@@ -803,7 +800,7 @@ class LifeCell implements Serializable {
     public void updateCell() {
         int neighbours = 0;
 
-        if (xPos < GamePanelController.GRID_WIDTH - 1) {
+        if (xPos < GridModel.GRID_WIDTH - 1) {
             if (cells[getIndex(xPos + 1, yPos)].isAlive()) neighbours++;
         }
 
@@ -811,7 +808,7 @@ class LifeCell implements Serializable {
             if (cells[getIndex(xPos - 1, yPos)].isAlive()) neighbours++;
         }
 
-        if (yPos < GamePanelController.GRID_HEIGHT - 1) {
+        if (yPos < GridModel.GRID_HEIGHT - 1) {
             if (cells[getIndex(xPos, yPos + 1)].isAlive()) neighbours++;
         }
 
@@ -823,15 +820,15 @@ class LifeCell implements Serializable {
             if (cells[getIndex(xPos - 1, yPos - 1)].isAlive()) neighbours++;
         }
 
-        if (yPos < GamePanelController.GRID_HEIGHT - 1 && xPos < GamePanelController.GRID_WIDTH - 1) {
+        if (yPos < GridModel.GRID_HEIGHT - 1 && xPos < GridModel.GRID_WIDTH - 1) {
             if (cells[getIndex(xPos + 1, yPos + 1)].isAlive()) neighbours++;
         }
 
-        if (yPos > 0 && xPos < GamePanelController.GRID_WIDTH - 1) {
+        if (yPos > 0 && xPos < GridModel.GRID_WIDTH - 1) {
             if (cells[getIndex(xPos + 1, yPos - 1)].isAlive()) neighbours++;
         }
 
-        if (yPos < GamePanelController.GRID_HEIGHT - 1 && xPos > 0) {
+        if (yPos < GridModel.GRID_HEIGHT - 1 && xPos > 0) {
             if (cells[getIndex(xPos - 1, yPos + 1)].isAlive()) neighbours++;
         }
 
@@ -894,18 +891,39 @@ class GridConfiguration implements Serializable {
 
 class GridModel
 {
+    public static final int GRID_SIZE = 5250, GRID_HEIGHT = 50, GRID_WIDTH = GRID_SIZE / GRID_HEIGHT;
+
 	private LifeCell[] cells;
+    private int currentGeneration = 0, currentSpeed = 250, gridHeight, gridSize, blockSize;
+    private String[] patterns = {"Clear", "Block", "Tub", "Boat", "Snake", "Ship", "Aircraft Carrier", "Beehive", "Barge",
+            "Python", "Long Boat", "Eater, Fishhook", "Loaf", "Cloverleaf", "Glider"},
+            speeds = {"Slow", "Normal", "Fast"}, sizes = {"Small", "Medium", "Big"};
 	
 	public LifeCell getCell(int index) { return cells[index]; }
 	public LifeCell[] getAllCells() { return cells; }
+	
 	public void setCell(int index, LifeCell cell) { cells[index] = cell; }
 	public void setAllCells(LifeCell[] cells) { this.cells = cells; }
+	public void setCurrentGeneration(int currentGeneration) { this.currentGeneration = currentGeneration; }
+	public void incrementGeneration() { this.currentGeneration++; }
+	public void setCurrentSpeed(int currentSpeed) { this.currentSpeed = currentSpeed; }
+	public void setBlockSize(int blockSize) { this.blockSize = blockSize; }
+	public void setGridHeight(int gridHeight) { this.gridHeight = gridHeight; }
+	public void setGridSize(int gridSize) { this.gridSize = gridSize; }
+
+	public int getCurrentGeneration() { return this.currentGeneration; }
+	public int getCurrentSpeed() { return this.currentSpeed; }
+	public int getGridHeight() { return this.gridHeight; }
+	public int getGridSize() { return this.gridSize; }
+	public int getBlockSize() { return this.blockSize; }
+	public String[] getPatterns() { return this.patterns; }
+	public String[] getSizes() { return this.sizes; }
+	public String[] getSpeeds() { return this.speeds; }
 }
 
 @SuppressWarnings("serial")
 class GridPanel extends JPanel
 {
-	private int gridSize = 0, gridHeight = 0, blockSize = 0;
     private Point mouseDragPoint, gridOffset = new Point(0, 0);
     private GridModel gridModel;
     
@@ -921,36 +939,30 @@ class GridPanel extends JPanel
                 
         Graphics2D g2D = (Graphics2D) g;
 
-        int offsetX = (this.getWidth() / 2) - ((gridSize * blockSize) / 2) + gridOffset.x,
-                offsetY = (this.getHeight() / 2) - ((gridHeight * blockSize) / 2) + gridOffset.y;
+        int offsetX = (this.getWidth() / 2) - ((gridModel.getGridSize() * gridModel.getBlockSize()) / 2) + gridOffset.x,
+                offsetY = (this.getHeight() / 2) - ((gridModel.getGridHeight() * gridModel.getBlockSize()) / 2) + gridOffset.y;
 
-        for (int i = 0; i < gridSize; i++) {
-            for (int j = 0; j < gridHeight; j++) {
-                int index = i + j * GamePanelController.GRID_WIDTH;
+        for (int i = 0; i < gridModel.getGridSize() ; i++) {
+            for (int j = 0; j < gridModel.getGridHeight(); j++) {
+                int index = i + j * GridModel.GRID_WIDTH;
                 g2D.setColor(Color.DARK_GRAY);
 
                 if (gridModel.getCell(index).isAlive()) {
                     g2D.setColor(Color.YELLOW);
                 }
 
-                int posX = i * blockSize + offsetX, posY = j * blockSize + offsetY;
-                g2D.fillRect(posX + 2, posY + 2, blockSize - 5, blockSize - 5);
+                int posX = i * gridModel.getBlockSize() + offsetX, posY = j * gridModel.getBlockSize() + offsetY;
+                g2D.fillRect(posX + 2, posY + 2, gridModel.getBlockSize() - 5, gridModel.getBlockSize() - 5);
 
-                if (blockSize >= 7) {
+                if (gridModel.getBlockSize() >= 7) {
                     g2D.setColor(Color.black);
-                    g2D.drawRect(posX + 2, posY + 2, blockSize - 5, blockSize - 5);
+                    g2D.drawRect(posX + 2, posY + 2, gridModel.getBlockSize() - 5, gridModel.getBlockSize() - 5);
                 }
             }
         }
     }
 	
     public void setGridOffset(Point offset) { this.gridOffset = offset; }
-    public void updateGridDetails(int gridHeight, int gridSize, int blockSize) 
-    { 
-    	this.gridHeight = gridHeight;
-    	this.gridSize = gridSize; 
-    	this.blockSize = blockSize; 
-    }
     
     public void setMouseDragPoint(Point mouseDragPoint) { this.mouseDragPoint = mouseDragPoint; }
     
