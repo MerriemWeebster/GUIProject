@@ -178,66 +178,66 @@ class GamePanelController implements Runnable {
                 int startingGrid = midX + midY * gridModel.getGridSize();
 
                 switch (panel.getPatternListSelectedString()) {
-                    case "Block" -> {
+                    case "Block" : 
                         cells[startingGrid].setAlive(true);
                         cells[startingGrid + 1].setAlive(true);
                         cells[startingGrid + gridModel.getGridSize()].setAlive(true);
                         cells[startingGrid + gridModel.getGridSize() + 1].setAlive(true);
-                    }
-                    case "Tub" -> {
+                        break;
+                    case "Tub" : 
                         cells[startingGrid + 1].setAlive(true);
                         cells[startingGrid - 1].setAlive(true);
                         cells[startingGrid - gridModel.getGridSize()].setAlive(true);
                         cells[startingGrid + gridModel.getGridSize()].setAlive(true);
-                    }
-                    case "Boat" -> {
+                        break;
+                    case "Boat" : 
                         cells[startingGrid + 1].setAlive(true);
                         cells[startingGrid - 1].setAlive(true);
                         cells[startingGrid - gridModel.getGridSize()].setAlive(true);
                         cells[startingGrid + gridModel.getGridSize()].setAlive(true);
                         cells[startingGrid + gridModel.getGridSize() + 1].setAlive(true);
-                    }
-                    case "Snake" -> {
+                        break;
+                    case "Snake" : 
                         cells[startingGrid - 1].setAlive(true);
                         cells[startingGrid + 1].setAlive(true);
                         cells[startingGrid + 2].setAlive(true);
                         cells[startingGrid + gridModel.getGridSize() + 2].setAlive(true);
                         cells[startingGrid + gridModel.getGridSize()].setAlive(true);
                         cells[startingGrid + gridModel.getGridSize() - 1].setAlive(true);
-                    }
-                    case "Ship" -> {
+                        break;
+                    case "Ship" : 
                         cells[startingGrid - 1].setAlive(true);
                         cells[startingGrid + 1].setAlive(true);
                         cells[startingGrid + gridModel.getGridSize()].setAlive(true);
                         cells[startingGrid + gridModel.getGridSize() + 1].setAlive(true);
                         cells[startingGrid - gridModel.getGridSize()].setAlive(true);
                         cells[startingGrid - gridModel.getGridSize() - 1].setAlive(true);
-                    }
-                    case "Aircraft Carrier" -> {
+                        break;
+                    case "Aircraft Carrier" : 
                         cells[startingGrid - 1].setAlive(true);
                         cells[startingGrid + 2].setAlive(true);
                         cells[startingGrid + gridModel.getGridSize() + 2].setAlive(true);
                         cells[startingGrid + gridModel.getGridSize() + 1].setAlive(true);
                         cells[startingGrid - gridModel.getGridSize()].setAlive(true);
                         cells[startingGrid - gridModel.getGridSize() - 1].setAlive(true);
-                    }
-                    case "Beehive" -> {
+                        break;
+                    case "Beehive" : 
                         cells[startingGrid - 1].setAlive(true);
                         cells[startingGrid + 2].setAlive(true);
                         cells[startingGrid + gridModel.getGridSize()].setAlive(true);
                         cells[startingGrid + gridModel.getGridSize() + 1].setAlive(true);
                         cells[startingGrid - gridModel.getGridSize()].setAlive(true);
                         cells[startingGrid - gridModel.getGridSize() + 1].setAlive(true);
-                    }
-                    case "Barge" -> {
+                        break;
+                    case "Barge" : 
                         cells[startingGrid].setAlive(true);
                         cells[startingGrid + 2].setAlive(true);
                         cells[startingGrid + gridModel.getGridSize() + 1].setAlive(true);
                         cells[startingGrid - gridModel.getGridSize() - 1].setAlive(true);
                         cells[startingGrid - gridModel.getGridSize() + 1].setAlive(true);
                         cells[startingGrid - gridModel.getGridSize() * 2].setAlive(true);
-                    }
-                    case "Python" -> {
+                        break;
+                    case "Python" : 
                         cells[startingGrid].setAlive(true);
                         cells[startingGrid - 2].setAlive(true);
                         cells[startingGrid + 2].setAlive(true);
@@ -245,8 +245,8 @@ class GamePanelController implements Runnable {
                         cells[startingGrid + gridModel.getGridSize() - 2].setAlive(true);
                         cells[startingGrid - gridModel.getGridSize() + 1].setAlive(true);
                         cells[startingGrid - gridModel.getGridSize() + 2].setAlive(true);
-                    }
-                    case "Long Boat" -> {
+                        break;
+                    case "Long Boat" : 
                         cells[startingGrid].setAlive(true);
                         cells[startingGrid + 2].setAlive(true);
                         cells[startingGrid + gridModel.getGridSize() + 1].setAlive(true);
@@ -254,8 +254,8 @@ class GamePanelController implements Runnable {
                         cells[startingGrid - gridModel.getGridSize() - 1].setAlive(true);
                         cells[startingGrid - gridModel.getGridSize() + 1].setAlive(true);
                         cells[startingGrid - gridModel.getGridSize() * 2].setAlive(true);
-                    }
-                    case "Eater, Fishhook" -> {
+                        break;
+                    case "Eater, Fishhook" : 
                         cells[startingGrid + 1].setAlive(true);
                         cells[startingGrid + gridModel.getGridSize() + 1].setAlive(true);
                         cells[startingGrid + gridModel.getGridSize() + 2].setAlive(true);
@@ -263,8 +263,8 @@ class GamePanelController implements Runnable {
                         cells[startingGrid - gridModel.getGridSize() + 1].setAlive(true);
                         cells[startingGrid - gridModel.getGridSize() * 2].setAlive(true);
                         cells[startingGrid - gridModel.getGridSize() * 2 - 1].setAlive(true);
-                    }
-                    case "Loaf" -> {
+                        break;
+                    case "Loaf" : 
                         cells[startingGrid - 1].setAlive(true);
                         cells[startingGrid + 2].setAlive(true);
                         cells[startingGrid + gridModel.getGridSize()].setAlive(true);
@@ -272,8 +272,8 @@ class GamePanelController implements Runnable {
                         cells[startingGrid - gridModel.getGridSize() - 1].setAlive(true);
                         cells[startingGrid - gridModel.getGridSize() + 1].setAlive(true);
                         cells[startingGrid - gridModel.getGridSize() * 2].setAlive(true);
-                    }
-                    case "Cloverleaf" -> {
+                        break;
+                    case "Cloverleaf" : 
                         cells[startingGrid + gridModel.getGridSize()].setAlive(true);
                         cells[startingGrid + gridModel.getGridSize() + 2].setAlive(true);
                         cells[startingGrid + gridModel.getGridSize() + 3].setAlive(true);
@@ -314,14 +314,14 @@ class GamePanelController implements Runnable {
                         cells[startingGrid - gridModel.getGridSize() * 4 + 3].setAlive(true);
                         cells[startingGrid - gridModel.getGridSize() * 5 - 1].setAlive(true);
                         cells[startingGrid - gridModel.getGridSize() * 5 + 1].setAlive(true);
-                    }
-                    case "Glider" -> {
+                        break;
+                    case "Glider" : 
                         cells[startingGrid - gridModel.getGridSize()].setAlive(true);
                         cells[startingGrid + 1].setAlive(true);
                         cells[startingGrid + gridModel.getGridSize()].setAlive(true);
                         cells[startingGrid + gridModel.getGridSize() + 1].setAlive(true);
                         cells[startingGrid + gridModel.getGridSize() - 1].setAlive(true);
-                    }
+                        break;
                 }
             }
         });
@@ -331,9 +331,9 @@ class GamePanelController implements Runnable {
             @Override
             public void actionPerformed(ActionEvent e) {
                 switch (panel.getSelectedSpeed()) {
-                    case 0 -> gridModel.setCurrentSpeed(500);
-                    case 1 -> gridModel.setCurrentSpeed(250);
-                    case 2 -> gridModel.setCurrentSpeed(100);
+                    case 0 : gridModel.setCurrentSpeed(500); break;
+                    case 1 : gridModel.setCurrentSpeed(250); break;
+                    case 2 : gridModel.setCurrentSpeed(100); break;
                 }
 
                 generationTimer.setDelay(gridModel.getCurrentSpeed());
