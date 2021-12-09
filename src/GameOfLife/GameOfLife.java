@@ -1,3 +1,13 @@
+/*
+CMP256 GAME PROJECT
+@authors
+Amira Elnashar		82075
+Mikaela Magsumbol 	82790
+Daniyal Khan		82137
+Amr Arafa			84419
+*/
+
+
 package GameOfLife;
 
 import java.awt.BorderLayout;
@@ -40,7 +50,6 @@ import javax.swing.JPopupMenu;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
-
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
@@ -49,6 +58,7 @@ public class GameOfLife {
         EventQueue.invokeLater(new Runnable() {
             @Override
             public void run() {
+                //main frame that display the game
                 JFrame frame = new JFrame("Game of Life");
                 frame.setSize(1280, 720);
                 frame.setResizable(true);
@@ -57,6 +67,7 @@ public class GameOfLife {
                 frame.setVisible(true);
                 frame.getContentPane().setBackground(Color.GRAY);
 
+                //MVC Code
                 GridModel gridModel = new GridModel();
                 GridPanel grid = new GridPanel(gridModel);
                 GamePanelView panel = new GamePanelView();
@@ -68,10 +79,12 @@ public class GameOfLife {
                         panelController.saveState();
                     }
                 });
-                
+
+                //Starting thread for the controller
                 Thread controllerThread = new Thread(panelController);
                 controllerThread.start();
-                
+
+                //starting thread for the rest of the display panel
                 Thread panelThread = new Thread(panel);
                 panelThread.start();
                 
@@ -85,7 +98,6 @@ class GamePanelController implements Runnable {
     private GamePanelView panel;
     private GridModel gridModel;
     private GridPanel grid;
-    
     private boolean init = false;
     private Preferences prefs;
     private Timer generationTimer;
@@ -95,16 +107,19 @@ class GamePanelController implements Runnable {
 		this.panel = panel;
 		this.gridModel = gridModel;
 		this.grid = grid;
-		
+
+        //loads the set preferences for the user
         prefs = Preferences.userRoot().node(this.getClass().getName() + " - GUI Game");
-        
-        
-        //TODO: proper changes to cells
+
+        //Array that stores information on the cells in the grid
+        //1-D array for efficiency
         LifeCell[] cells = new LifeCell[GridModel.GRID_SIZE];
 
+        //initializing and setting cells array
         for (int i = 0; i < GridModel.GRID_SIZE; i++) cells[i] = new LifeCell(i, cells);
         gridModel.setAllCells(cells);
 
+        //sets default preferences if user didn't set any
         try {
             if (!Preferences.userRoot().nodeExists(this.getClass().getName() + " - GUI Game")) {
                 prefs.putInt("speed", 1);
@@ -116,13 +131,14 @@ class GamePanelController implements Runnable {
         } catch (BackingStoreException e2) {
             e2.printStackTrace();
         }
-        
+
+        //MVC- setting sizes in the view using the model
         panel.setPatternList(gridModel.getPatterns());
         panel.setSizeList(gridModel.getSizes());
         panel.setSpeedList(gridModel.getSpeeds());
-        
         panel.initGridPanel(grid);
 
+        //stores preferences of file being saved
         panel.addSaveButtonListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -133,14 +149,16 @@ class GamePanelController implements Runnable {
                 panel.setPrefsDialogVisible(false);
             }
         });
-        
+
+        //timer for how fast the display repaints
         generationTimer = new Timer(gridModel.getCurrentSpeed(), new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 gridModel.incrementGeneration();
                 updateGame();
         }});
-        
+
+        //listener for next button
         panel.addNextButtonListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -148,6 +166,7 @@ class GamePanelController implements Runnable {
                 updateGame();
             }});
 
+        //listener for start/stop button
         panel.addStartButtonListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -177,6 +196,7 @@ class GamePanelController implements Runnable {
                 int midX = gridModel.getGridSize() / 2, midY = gridModel.getGridHeight() / 2;
                 int startingGrid = midX + midY * gridModel.getGridSize();
 
+                //setting pattern cells
                 switch (panel.getPatternListSelectedString()) {
                     case "Block" : 
                         cells[startingGrid].setAlive(true);
@@ -326,7 +346,7 @@ class GamePanelController implements Runnable {
             }
         });
 
-        //speed menu thingy listener
+        //speed menu listener
         panel.addSpeedListListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -372,7 +392,6 @@ class GamePanelController implements Runnable {
                             offsetY = (grid.getHeight() / 2) - ((gridModel.getGridHeight() * gridModel.getBlockSize()) / 2) + grid.getGridOffset().y;
 
                     int selectedIndex = -1;
-
                     for (int i = 0; i < gridModel.getGridSize(); i++) {
                         for (int j = 0; j < gridModel.getGridHeight(); j++) {
                             int index = i + j * GridModel.GRID_WIDTH;
@@ -536,6 +555,7 @@ class GamePanelController implements Runnable {
         });        
 	}
 
+      //to initialize preferences at startup
 	  public void initData() {
 	        panel.selectPattern(prefs.getInt("pattern", 0));
 	        panel.selectSize(prefs.getInt("zoom", 1));
@@ -556,6 +576,7 @@ class GamePanelController implements Runnable {
 	        panel.repaint();
 	    }
 
+        //saves state of cells
 	    public void saveState() {
 	        prefs.putByteArray("grid", getCellsByteArray());
 	    }
@@ -633,8 +654,9 @@ class GamePanelController implements Runnable {
 }
 
 @SuppressWarnings("serial")
+// MVC- View
 class GamePanelView extends JPanel implements Runnable {
-
+    //Components of display
 	private BorderLayout borderLayout;
     private FlowLayout flowLayout;
     private JPanel controls, prefsPanel;
@@ -646,15 +668,16 @@ class GamePanelView extends JPanel implements Runnable {
     private JCheckBox restorePrefCheck;
     private JComboBox<String> patternPrefList, speedPrefList, sizePrefList;
 
+    //initializing grid display with components
     public void initGridPanel(GridPanel grid) {
-
+        //preferences panel
         prefsDialog = new JDialog(getTopFrame(), "Preferences", true);
         prefsDialog.setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
         prefsPanel = new JPanel();
         prefsPanel.setLayout(new GridLayout(5, 2));
 
         restorePrefCheck = new JCheckBox("Restore Grid on Start");
-
+        //components of preferences panel
         prefsPanel.add(new JLabel("Default Pattern:"));
         prefsPanel.add(patternPrefList);
         prefsPanel.add(new JLabel("Default Speed:"));
@@ -672,7 +695,7 @@ class GamePanelView extends JPanel implements Runnable {
         prefsDialog.pack();
         prefsDialog.setResizable(false);
        
-
+        //main panel
         borderLayout = new BorderLayout();
         flowLayout = new FlowLayout();
         nextButton = new JButton("Next");
@@ -683,6 +706,7 @@ class GamePanelView extends JPanel implements Runnable {
 
         this.setLayout(borderLayout);
 
+        //controller panel
         controls = new JPanel();
         controls.setLayout(flowLayout);
         controls.add(editCheck);
@@ -697,7 +721,8 @@ class GamePanelView extends JPanel implements Runnable {
         this.add(grid, BorderLayout.CENTER);
         this.add(controls, BorderLayout.PAGE_END);
     }
-        
+
+    //setters for combo boxes
     public void setPatternList(String[] patterns) 
     { 
     	this.patternList = new JComboBox<String>(patterns); 
@@ -713,7 +738,7 @@ class GamePanelView extends JPanel implements Runnable {
     	this.sizeList = new JComboBox<String>(sizes);
     	this.sizePrefList = new JComboBox<String>(sizes);
     }
-    
+    //setters/selects
     public void selectPattern(int index) { this.patternList.setSelectedIndex(index); }
     public void selectSpeed(int index) { this.speedList.setSelectedIndex(index); }
     public void selectSize(int index) { this.sizeList.setSelectedIndex(index); }
@@ -732,7 +757,7 @@ class GamePanelView extends JPanel implements Runnable {
     public void setNextButtonEnabled(boolean enabled) { this.nextButton.setEnabled(enabled); }
     public void setEditMode(boolean enabled) { this.editCheck.setSelected(enabled); }
     public void setStartButtonText(String text) { this.startButton.setText(text); }    
-
+    //getters
     public int getSelectedPattern() { return this.patternList.getSelectedIndex(); }
     public int getSelectedSpeed() { return this.speedList.getSelectedIndex(); }
     public int getSelectedSize() { return this.sizeList.getSelectedIndex(); }
@@ -749,6 +774,7 @@ class GamePanelView extends JPanel implements Runnable {
         return (JFrame) SwingUtilities.getWindowAncestor(this);
     }
 
+    // Repaints and puts the thread to sleep to allow the other thread to run
 	@Override
 	public void run()
 	{
@@ -767,20 +793,23 @@ class GamePanelView extends JPanel implements Runnable {
 	}
 }
 
+// serializable allows cells information to be stored and fetched as bytes
 class LifeCell implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private int xPos, yPos;
-    private boolean alive = false, futureAlive = false;
+    private boolean alive = false,
+                    futureAlive = false; //for calculation of next generation
     private LifeCell[] cells;
 
-
+    //constructor
     LifeCell(int currentIndex, LifeCell[] cells) {
         this.xPos = currentIndex % GridModel.GRID_WIDTH;
         this.yPos = currentIndex / GridModel.GRID_WIDTH;
         this.cells = cells;
     }
 
+    //setters and getters
     public int getIndex(int x, int y) {
         return x + y * GridModel.GRID_WIDTH;
     }
@@ -797,6 +826,7 @@ class LifeCell implements Serializable {
         this.alive = this.futureAlive;
     }
 
+    //laws of the game, determines how the cells behave
     public void updateCell() {
         int neighbours = 0;
 
@@ -840,6 +870,7 @@ class LifeCell implements Serializable {
     }
 }
 
+//class that holds the necessary data for loading preferences of the game
 class GridConfiguration implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -848,7 +879,7 @@ class GridConfiguration implements Serializable {
     private Point gridOffset;
     private LifeCell[] cells;
 
-
+    //constructor
     GridConfiguration(LifeCell[] cells, int currentGeneration, int currentSpeed, int currentSize, int startingPattern,
                       boolean editMode, Point gridOffset) {
         this.cells = cells;
@@ -889,10 +920,10 @@ class GridConfiguration implements Serializable {
     }
 }
 
+//MVC Model
 class GridModel
 {
     public static final int GRID_SIZE = 5250, GRID_HEIGHT = 50, GRID_WIDTH = GRID_SIZE / GRID_HEIGHT;
-
 	private LifeCell[] cells;
     private int currentGeneration = 0, currentSpeed = 250, gridHeight, gridSize, blockSize;
     private String[] patterns = {"Clear", "Block", "Tub", "Boat", "Snake", "Ship", "Aircraft Carrier", "Beehive", "Barge",
@@ -901,7 +932,8 @@ class GridModel
 	
 	public LifeCell getCell(int index) { return cells[index]; }
 	public LifeCell[] getAllCells() { return cells; }
-	
+
+    //setters and getters
 	public void setCell(int index, LifeCell cell) { cells[index] = cell; }
 	public void setAllCells(LifeCell[] cells) { this.cells = cells; }
 	public void setCurrentGeneration(int currentGeneration) { this.currentGeneration = currentGeneration; }
@@ -910,7 +942,6 @@ class GridModel
 	public void setBlockSize(int blockSize) { this.blockSize = blockSize; }
 	public void setGridHeight(int gridHeight) { this.gridHeight = gridHeight; }
 	public void setGridSize(int gridSize) { this.gridSize = gridSize; }
-
 	public int getCurrentGeneration() { return this.currentGeneration; }
 	public int getCurrentSpeed() { return this.currentSpeed; }
 	public int getGridHeight() { return this.gridHeight; }
@@ -926,13 +957,15 @@ class GridPanel extends JPanel
 {
     private Point mouseDragPoint, gridOffset = new Point(0, 0);
     private GridModel gridModel;
-    
+
+    //constructor
     GridPanel(GridModel gridModel)
     {
     	this.gridModel = gridModel;
         this.setBackground(Color.GRAY);
     }
 
+    //draws the grid and colors the squares according to whether they aer alive or not
 	@Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -961,7 +994,8 @@ class GridPanel extends JPanel
             }
         }
     }
-	
+
+    //setters and getters
     public void setGridOffset(Point offset) { this.gridOffset = offset; }
     
     public void setMouseDragPoint(Point mouseDragPoint) { this.mouseDragPoint = mouseDragPoint; }
