@@ -4,7 +4,7 @@ CMP256 GAME PROJECT
 Amira Elnashar		82075
 Mikaela Magsumbol 	82790
 Daniyal Khan		82137
-Amr Arafa			84419
+Amr Arafa		84419
 */
 
 
